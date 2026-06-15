@@ -1,0 +1,26 @@
+{
+  "name": "text-to-sql",
+  "version": "1.0.0",
+  "description": "Text-to-SQL Application - Backend + Frontend",
+  "main": "main.py",
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cross-env PYTHONIOENCODING=utf-8 .env\\Scripts\\python.exe backend/main.py",
+    "frontend": "cd frontend && npm start",
+    "dev:backend": "cross-env PYTHONIOENCODING=utf-8 .env\\Scripts\\python.exe backend/main.py",
+    "dev:frontend": "cd frontend && npm start",
+    "install-all": "npm install && cd frontend && npm install && cd ..",
+    "build": "cd frontend && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "cross-env": "^10.1.0"
+  },
+  "keywords": [
+    "text-to-sql",
+    "fastapi",
+    "react"
+  ],
+  "author": "",
+  "license": "MIT"
+}
