@@ -4,7 +4,7 @@ POST /query - Process natural language query and return results
 GET /query/search-tables - Search for similar tables using embeddings
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any, List
 import sys
 from pathlib import Path
