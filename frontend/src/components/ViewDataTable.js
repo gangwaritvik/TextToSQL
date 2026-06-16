@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
 import "./ViewDataTable.css";
+import FullScreenTableModal from "./FullScreenTableModal";
 
-function ViewDataTable() {
+function ViewDataTable({ refreshTrigger, selectedDatabase: initialDatabase }) {
   const [databases, setDatabases] = useState([]);
   const [tables, setTables] = useState([]);
-  const [selectedDatabase, setSelectedDatabase] = useState(null);
+  const [uploadedTables, setUploadedTables] = useState([]);
+  const [selectedDatabase, setSelectedDatabase] = useState(initialDatabase || null);
   const [selectedTable, setSelectedTable] = useState(null);
   const [tableData, setTableData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
   // Fetch databases on component mount
   useEffect(() => {
@@ -20,7 +23,9 @@ function ViewDataTable() {
         if (!response.ok) throw new Error("Failed to fetch databases");
         const dbNames = await response.json();
         setDatabases(dbNames);
-        // Don't auto-select - wait for user to select
+        if (initialDatabase && dbNames.includes(initialDatabase)) {
+          setSelectedDatabase(initialDatabase);
+        }
       } catch (err) {
         setError(err.message);
         console.error("Error fetching databases:", err);
@@ -30,9 +35,9 @@ function ViewDataTable() {
     };
 
     fetchDatabases();
-  }, []);
+  }, [initialDatabase]);
 
-  // Fetch tables when database changes
+  // Fetch tables and uploaded files when database changes or refresh triggered
   useEffect(() => {
     if (!selectedDatabase) return;
 
@@ -48,10 +53,33 @@ function ViewDataTable() {
           `http://localhost:8000/databases/${selectedDatabase}/tables`
         );
         if (!response.ok) throw new Error(`Failed to fetch tables for ${selectedDatabase}`);
-        const tablesData = await response.json();
-        setTables(Array.isArray(tablesData) ? tablesData : []);
-        if (Array.isArray(tablesData) && tablesData.length > 0) {
-          setSelectedTable(tablesData[0].name);
+        let tablesData = await response.json();
+
+        // Fetch uploaded tables
+        let uploadedData = [];
+        try {
+          const uploadedResponse = await fetch(
+            `http://localhost:8000/upload/tables?database=${selectedDatabase}`
+          );
+          if (uploadedResponse.ok) {
+            uploadedData = await uploadedResponse.json();
+            setUploadedTables(uploadedData);
+          }
+        } catch (err) {
+          console.warn("Could not fetch uploaded tables:", err);
+          setUploadedTables([]);
+        }
+
+        // Filter out uploaded tables from regular tables list
+        const uploadedTableNames = uploadedData.map(t => t.name);
+        const filteredTables = Array.isArray(tablesData) 
+          ? tablesData.filter(t => !uploadedTableNames.includes(t.name))
+          : [];
+        
+        setTables(filteredTables);
+
+        if (filteredTables.length > 0) {
+          setSelectedTable(filteredTables[0].name);
         }
       } catch (err) {
         setError(err.message);
@@ -63,7 +91,7 @@ function ViewDataTable() {
     };
 
     fetchTables();
-  }, [selectedDatabase]);
+  }, [selectedDatabase, refreshTrigger]);
 
   // Fetch table data when table changes
   useEffect(() => {
@@ -90,6 +118,17 @@ function ViewDataTable() {
 
     fetchTableData();
   }, [selectedDatabase, selectedTable]);
+
+  // Handle ESC key to close fullscreen modal
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === "Escape" && isFullscreenOpen) {
+        setIsFullscreenOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleEscKey);
+    return () => window.removeEventListener("keydown", handleEscKey);
+  }, [isFullscreenOpen]);
 
   return (
     <div className="view-data-container">
@@ -139,18 +178,35 @@ function ViewDataTable() {
             <div className="selector-group">
               <label className="selector-label">Select Table:</label>
               <div className="selector-buttons">
-                {tables.length === 0 ? (
+                {tables.length === 0 && uploadedTables.length === 0 ? (
                   <span className="no-items">No tables in this database</span>
                 ) : (
-                  tables.map((table) => (
-                    <button
-                      key={table.name}
-                      className={`selector-btn table-btn ${selectedTable === table.name ? "active" : ""}`}
-                      onClick={() => setSelectedTable(table.name)}
-                    >
-                      📋 {table.name} ({table.rows} rows)
-                    </button>
-                  ))
+                  <>
+                    {tables.length > 0 && (
+                      <div className="table-section-header">📋 Existing Tables</div>
+                    )}
+                    {tables.map((table) => (
+                      <button
+                        key={table.name}
+                        className={`selector-btn table-btn ${selectedTable === table.name ? "active" : ""}`}
+                        onClick={() => setSelectedTable(table.name)}
+                      >
+                        📋 {table.name} ({table.rows} rows)
+                      </button>
+                    ))}
+                    {uploadedTables.length > 0 && (
+                      <div className="table-section-header uploaded">📤 Uploaded Files</div>
+                    )}
+                    {uploadedTables.map((table) => (
+                      <button
+                        key={table.name}
+                        className={`selector-btn table-btn uploaded ${selectedTable === table.name ? "active" : ""}`}
+                        onClick={() => setSelectedTable(table.name)}
+                      >
+                        📤 {table.name} ({table.rows} rows)
+                      </button>
+                    ))}
+                  </>
                 )}
               </div>
             </div>
@@ -166,27 +222,36 @@ function ViewDataTable() {
                 <div className="table-info">
                   <span className="row-count">📊 {tableData.rows.length} row{tableData.rows.length !== 1 ? 's' : ''}</span>
                   <span className="col-count">📋 {tableData.columns.length} column{tableData.columns.length !== 1 ? 's' : ''}</span>
+                  <button 
+                    className="expand-btn"
+                    onClick={() => setIsFullscreenOpen(true)}
+                    title="Expand to fullscreen"
+                  >
+                    ⛶ Expand
+                  </button>
                 </div>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      {tableData.columns.map((col) => (
-                        <th key={col}>{col}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableData.rows.map((row, idx) => (
-                      <tr key={idx}>
+                <div className="table-scroll-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
                         {tableData.columns.map((col) => (
-                          <td key={`${idx}-${col}`}>
-                            {row[col] !== null && row[col] !== undefined ? String(row[col]) : "-"}
-                          </td>
+                          <th key={col}>{col}</th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {tableData.rows.map((row, idx) => (
+                        <tr key={idx}>
+                          {tableData.columns.map((col) => (
+                            <td key={`${idx}-${col}`}>
+                              {row[col] !== null && row[col] !== undefined ? String(row[col]) : "-"}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <div className="empty-state">
@@ -196,6 +261,15 @@ function ViewDataTable() {
           </div>
         </div>
       )}
+
+      {/* Fullscreen Table Modal */}
+      <FullScreenTableModal
+        isOpen={isFullscreenOpen}
+        onClose={() => setIsFullscreenOpen(false)}
+        tableTitle={selectedTable}
+        columns={tableData?.columns || []}
+        rows={tableData?.rows || []}
+      />
     </div>
   );
 }

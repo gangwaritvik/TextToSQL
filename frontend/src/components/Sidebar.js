@@ -1,7 +1,7 @@
 import React from "react";
 import "./Sidebar.css";
 
-function Sidebar({ activeView, onViewChange }) {
+function Sidebar({ activeView, onViewChange, onFileUploadClick }) {
   const menuItems = [
     { id: "query", label: "Query", icon: "💬" },
     { id: "schema", label: "Database Schema", icon: "🗄️" },
@@ -14,6 +14,15 @@ function Sidebar({ activeView, onViewChange }) {
         <h1>📝 SQL Master</h1>
         <p className="sidebar-subtitle">Text-to-SQL</p>
       </div>
+
+      <button 
+        className="upload-btn"
+        onClick={onFileUploadClick}
+        title="Upload CSV or Excel file"
+      >
+        <span className="upload-icon">📤</span>
+        <span className="upload-label">Upload Data</span>
+      </button>
 
       <nav className="sidebar-menu">
         {menuItems.map((item) => (

@@ -73,31 +73,44 @@ class VectorStore:
         self, 
         database_name: str, 
         query_embedding: List[float], 
-        k: int = 5
+        k: int = 5,
+        similarity_threshold: float = 2.5
     ) -> List[Dict[str, Any]]:
-        """Search for similar tables using FAISS"""
+        """Search for similar tables using FAISS with similarity threshold
+        
+        Args:
+            database_name: Database to search in
+            query_embedding: Query embedding vector
+            k: Max number of results to return
+            similarity_threshold: L2 distance threshold (lower = more similar). Default 2.5 filters out poorly matched tables.
+        """
         try:
             if database_name not in self.faiss_indices:
                 return []
             
             query_array = np.array([query_embedding], dtype=np.float32)
             
-            # Search FAISS index
+            # Search FAISS index - get more results to filter by threshold
             index = self.faiss_indices[database_name]
-            distances, indices = index.search(query_array, k)
+            search_k = min(k * 3, len(self.embeddings_store[database_name]))  # Get up to 3x results for filtering
+            distances, indices = index.search(query_array, search_k)
             
             results = []
             entries = self.embeddings_store[database_name]
-            for idx in indices[0]:
+            for i, idx in enumerate(indices[0]):
                 if idx < len(entries):
-                    results.append({
-                        "table": entries[idx]["table"],
-                        "database": entries[idx]["database"],
-                        "distance": float(distances[0][list(indices[0]).index(idx)]),
-                        "metadata": entries[idx]["metadata"]
-                    })
+                    distance = float(distances[0][i])
+                    # Only include if below threshold (lower L2 distance = more similar)
+                    if distance <= similarity_threshold:
+                        results.append({
+                            "table": entries[idx]["table"],
+                            "database": entries[idx]["database"],
+                            "distance": distance,
+                            "metadata": entries[idx]["metadata"]
+                        })
             
-            return results
+            # Return up to k results
+            return results[:k]
         except Exception as e:
             print(f"❌ Search error: {str(e)}")
             return []

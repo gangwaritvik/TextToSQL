@@ -66,7 +66,7 @@
   background: rgba(20, 184, 166, 0.08);
   border: 2px solid rgba(20, 184, 166, 0.25);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: visible;
   transition: all var(--transition-base);
   animation: fadeInUp 0.5s ease-out backwards;
   backdrop-filter: blur(6px);
@@ -148,7 +148,7 @@
   background: rgba(59, 130, 246, 0.08);
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.25s ease;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -158,6 +158,20 @@
   background: rgba(59, 130, 246, 0.12);
   border-color: rgba(59, 130, 246, 0.3);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateX(2px);
+}
+
+/* Highlight uploaded files differently */
+.table-section[data-uploaded="true"] {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.08) 100%);
+  border: 2px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.1) inset;
+}
+
+.table-section[data-uploaded="true"]:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.12) 100%);
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.2) inset, 0 4px 15px rgba(245, 158, 11, 0.2);
   transform: translateX(2px);
 }
 
@@ -186,6 +200,29 @@
   font-size: 1em;
 }
 
+/* Highlight uploaded file icon */
+.table-section[data-uploaded="true"] .table-section-icon {
+  font-size: 1.15em;
+  color: #f59e0b;
+  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4));
+  animation: pulse-upload 2s ease-in-out infinite;
+}
+
+@keyframes pulse-upload {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.8));
+  }
+}
+
+/* Highlight uploaded file name */
+.table-section[data-uploaded="true"] .table-section-name {
+  color: #fbbf24;
+  font-weight: var(--font-weight-medium);
+}
+
 .table-section-name {
   flex: 1;
   color: var(--color-text-secondary);
@@ -207,7 +244,62 @@
   padding: var(--space-md);
   background: rgba(10, 10, 10, 0.6);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.schema-header-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.expand-schema-btn {
+  padding: 8px 14px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.85em;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.expand-schema-btn:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #bfdbfe;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.schema-table-scroll {
   overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.4) rgba(20, 20, 30, 0.2);
+}
+
+.schema-table-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.schema-table-scroll::-webkit-scrollbar-track {
+  background: rgba(20, 20, 30, 0.2);
+}
+
+.schema-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.4);
+  border-radius: 4px;
+}
+
+.schema-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.6);
 }
 
 .schema-table {
@@ -217,10 +309,13 @@
   background: rgba(30, 30, 30, 0.1);
   border: 2px solid rgba(59, 130, 246, 0.3);
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .schema-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background: linear-gradient(90deg, rgba(20, 184, 166, 0.2) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(139, 92, 246, 0.2) 100%);
   border-bottom: 2px solid rgba(59, 130, 246, 0.3);
 }
@@ -382,4 +477,33 @@
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-regular);
 }
+
+/* Uploaded Files Section */
+.uploaded-section {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(34, 197, 94, 0.05)) !important;
+  border: 2px solid rgba(16, 185, 129, 0.3) !important;
+  margin-top: var(--space-lg);
+}
+
+.uploaded-header {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(34, 197, 94, 0.05)) !important;
+}
+
+.uploaded-header:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(34, 197, 94, 0.1)) !important;
+}
+
+.uploaded-table {
+  background: rgba(16, 185, 129, 0.05) !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+.uploaded-table .table-section-header {
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
+.uploaded-table .table-section-header:hover {
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
 

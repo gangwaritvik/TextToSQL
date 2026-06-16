@@ -27,6 +27,7 @@ class QueryResponse(BaseModel):
     executionTime: str = Field(..., description="Execution time")
     tokensUsed: str = Field(..., description="Tokens used")
     complexity: str = Field(..., description="Query complexity")
+    executionError: Optional[str] = Field(None, description="Error message if operation was blocked")
 
 
 class ColumnInfo(BaseModel):

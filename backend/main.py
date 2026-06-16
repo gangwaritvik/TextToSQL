@@ -13,12 +13,6 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / ".env.local"
 load_dotenv(env_path)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-
 # Suppress FAISS loader INFO messages (they're just about trying different SIMD versions)
 logging.getLogger("faiss.loader").setLevel(logging.WARNING)
 
@@ -39,3 +33,4 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+    

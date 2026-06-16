@@ -107,74 +107,28 @@ Relevant Tables and Schemas:
 {join_context}
 
 Instructions:
-1. Generate ONLY a valid SQL SELECT query (no explanation or markdown)
-2. Use the table schemas provided above
+1. Analyze if this request is asking for a DANGEROUS operation (DELETE, DROP, UPDATE, INSERT, etc.)
+2. Generate a valid SQL SELECT query to answer the question
 3. IMPORTANT: Select ONLY the specific columns mentioned in the question
    - If user asks for "names", select the name column (Full_name, name, etc.)
    - If user asks for "all", then use SELECT *
    - Match column names based on semantic meaning
 4. Include necessary JOINs if multiple tables are required
 5. Use appropriate WHERE clauses to filter the data
-6. Return query in single line without formatting
-7. Ensure the query is valid PostgreSQL syntax
+6. Ensure the query is valid PostgreSQL syntax
 
-Return ONLY the SQL query, nothing else."""
+Return your response in EXACTLY this format:
+DANGEROUS: [YES/NO]
+REASON: [Brief reason if dangerous, or "Safe to execute" if not]
+SQL: [The SQL query in single line]
 
-    return prompt
+Examples:
+DANGEROUS: NO
+REASON: Safe to execute
+SQL: SELECT name, email FROM customers WHERE status = 'active'
 
-
-
-def build_query_analysis_prompt(
-    query_text: str,
-    relevant_tables: List[str],
-    table_metadata: List[Dict[str, Any]],
-    join_graph: Dict[str, Any],
-    database_name: str
-) -> str:
-    """
-    Build a prompt for analyzing query requirements.
-    
-    Args:
-        query_text: The natural language query from user
-        relevant_tables: List of table names identified as relevant
-        table_metadata: Metadata for all tables in database
-        join_graph: Join graph for the database
-        database_name: Name of the database
-    
-    Returns:
-        Formatted analysis prompt string for LLM
-    """
-    
-    # Filter metadata to only relevant tables
-    relevant_metadata = [
-        t for t in table_metadata 
-        if t["name"] in relevant_tables
-    ]
-    
-    # Build table details
-    table_contexts = [build_table_metadata_context(t) for t in relevant_metadata]
-    
-    # Build join context
-    join_context = build_join_graph_context(join_graph, relevant_tables)
-    
-    prompt = f"""Analyze the following database query and provide details.
-
-Database: {database_name}
-
-Question: {query_text}
-
-Relevant Tables and Schemas:
-{"".join(table_contexts)}
-
-{join_context}
-
-Provide:
-1. A brief description of what the query intends to do
-2. Which columns should be selected
-3. Which tables need to be joined (if any)
-4. What WHERE conditions are needed (if any)
-5. Any other relevant SQL considerations
-
-Be concise and focus on SQL generation requirements."""
+DANGEROUS: YES
+REASON: User asked to delete customer records
+SQL: DELETE FROM customers WHERE id = 1"""
 
     return prompt

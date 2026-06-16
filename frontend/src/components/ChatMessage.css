@@ -349,14 +349,77 @@
   background: rgba(59, 130, 246, 0.04);
 }
 
+/* Danger Button */
+.danger-button {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.15));
+  color: #fca5a5;
+  border: 1.5px solid rgba(239, 68, 68, 0.4);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75em;
+  font-weight: var(--font-weight-bold);
+  cursor: not-allowed;
+  transition: all var(--transition-base);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2), inset 0 0 8px rgba(239, 68, 68, 0.05);
+  animation: dangerpulse 2s ease-in-out infinite;
+}
+
+.danger-button:disabled {
+  opacity: 1;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.2));
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.3), inset 0 0 8px rgba(239, 68, 68, 0.1);
+}
+
+@keyframes dangerpulse {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2), inset 0 0 8px rgba(239, 68, 68, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.35), inset 0 0 12px rgba(239, 68, 68, 0.15);
+  }
+}
+
 /* Results Table */
+.results-wrapper {
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.4) rgba(20, 20, 30, 0.2);
+}
+
+.results-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.results-wrapper::-webkit-scrollbar-track {
+  background: rgba(20, 20, 30, 0.2);
+}
+
+.results-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.4);
+  border-radius: 4px;
+}
+
+.results-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.6);
+}
+
 .results-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8em;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+  background: transparent;
+}
+
+.results-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .results-table th {

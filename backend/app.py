@@ -10,15 +10,23 @@ from contextlib import asynccontextmanager
 import sys
 from pathlib import Path
 import shutil
+import logging
+
+# Configure logging to output to console (ensure it shows in terminal)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.db.db import get_engine
-from backend.utils.join_graph import build_all_join_graphs, print_join_graph
+from backend.utils.join_graph import build_all_join_graphs
 from backend.utils.metadata import build_all_metadata
 from backend.utils.state import set_join_graphs, set_metadata
-from backend.routes import query_router, databases_router, join_graphs_router, metadata_router
+from backend.core.file_handler import FileUploadHandler
+from backend.routes import query_router, databases_router, join_graphs_router, metadata_router, upload_router
 from backend.core.embedder import initialize_embeddings
 from backend.utils.logger import cleanup_logs
 
@@ -53,8 +61,16 @@ async def lifespan(app: FastAPI):
         
         print(f"✅ Found {len(databases)} databases: {databases}")
         
+        # Clean up any leftover uploaded files from previous sessions
+        print("\n📍 Step 2: Cleaning up uploaded files from previous sessions...")
+        cleanup_result = FileUploadHandler.cleanup_uploaded_tables(databases)
+        if cleanup_result["success"]:
+            print(f"✅ {cleanup_result['message']}")
+        else:
+            print(f"⚠️  {cleanup_result['message']}")
+        
         # Build join graphs
-        print("\n📍 Step 2: Building join graphs...")
+        print("\n📍 Step 3: Building join graphs...")
         join_graphs = build_all_join_graphs(databases)
         set_join_graphs(join_graphs)
         
@@ -127,3 +143,4 @@ app.include_router(query_router)
 app.include_router(databases_router)
 app.include_router(join_graphs_router)
 app.include_router(metadata_router)
+app.include_router(upload_router)

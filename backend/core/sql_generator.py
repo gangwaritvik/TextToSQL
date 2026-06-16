@@ -10,7 +10,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.utils.prompt_builder import build_sql_generation_prompt, build_query_analysis_prompt
+from backend.utils.prompt_builder import build_sql_generation_prompt
 from backend.config.llm import model as llm_model
 
 # Configure logging
@@ -36,11 +36,22 @@ class SQLGenerator:
     ) -> tuple:
         """
         Generate SQL query from natural language using Azure OpenAI.
+        Also includes danger assessment in single LLM call.
         
         Returns:
-            Tuple of (sql_query, tokens_used)
+            Tuple of (sql_query, tokens_used, is_dangerous, danger_reason)
         """
         try:
+            logger.info("🔨 Building prompt for SQL generation...")
+            
+            # Log table analysis
+            uploaded_tables = [t for t in table_metadata if t.get("uploaded", False)]
+            regular_tables = [t for t in table_metadata if not t.get("uploaded", False)]
+            
+            if uploaded_tables:
+                logger.info(f"📤 Uploaded tables in context: {[t['name'] for t in uploaded_tables]}")
+            logger.info(f"📊 Database tables in context: {[t['name'] for t in regular_tables]}")
+            
             prompt = build_sql_generation_prompt(
                 query_text=query_text,
                 relevant_tables=relevant_tables,
@@ -49,13 +60,44 @@ class SQLGenerator:
                 database_name=database_name
             )
             
+            logger.info("📤 SENDING TO LLM:")
+            logger.info("=" * 80)
+            logger.info(prompt)
+            logger.info("=" * 80)
+            
             try:
+                logger.info("⏳ Waiting for LLM response...")
                 response = self.model.invoke(prompt)
-                sql_query = response.content.strip()
+                response_text = response.content.strip()
+                
+                logger.info("📥 LLM RESPONSE:")
+                logger.info("=" * 80)
+                logger.info(response_text)
+                logger.info("=" * 80)
+                
             except Exception as invoke_error:
+                logger.error(f"❌ LLM invocation failed: {str(invoke_error)}", exc_info=True)
                 raise invoke_error
             
-            # Remove markdown code blocks if present
+            # Parse response to extract DANGEROUS, REASON, and SQL
+            is_dangerous = False
+            danger_reason = ""
+            sql_query = ""
+            
+            lines = response_text.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line.startswith("DANGEROUS:"):
+                    is_dangerous = "YES" in line.upper()
+                    logger.info(f"🚨 DANGEROUS FLAG: {is_dangerous}")
+                elif line.startswith("REASON:"):
+                    danger_reason = line.replace("REASON:", "").strip()
+                    logger.info(f"📝 REASON: {danger_reason}")
+                elif line.startswith("SQL:"):
+                    sql_query = line.replace("SQL:", "").strip()
+                    logger.info(f"📋 EXTRACTED SQL: {sql_query}")
+            
+            # Clean up SQL if still has markdown
             if sql_query.startswith("```sql"):
                 sql_query = sql_query[6:]
             if sql_query.startswith("```"):
@@ -64,6 +106,14 @@ class SQLGenerator:
                 sql_query = sql_query[:-3]
             
             sql_query = sql_query.strip()
+            
+            logger.info("✅ CLEANED SQL:")
+            logger.info("=" * 80)
+            logger.info(sql_query)
+            logger.info("=" * 80)
+            
+            if is_dangerous:
+                logger.warning(f"⚠️ DANGEROUS OPERATION DETECTED: {danger_reason}")
             
             # Extract tokens used from response metadata
             tokens_used = "0"
@@ -76,52 +126,13 @@ class SQLGenerator:
             except:
                 tokens_used = "0"
             
-            return sql_query, tokens_used
+            logger.info(f"💰 Tokens used: {tokens_used}")
+            
+            return sql_query, tokens_used, is_dangerous, danger_reason
             
         except Exception as e:
             logger.error(f"LLM call failed: {type(e).__name__}: {str(e)}")
-            return "", "0"
-    
-    def analyze_query(
-        self,
-        query_text: str,
-        relevant_tables: List[str],
-        table_metadata: List[Dict[str, Any]],
-        join_graph: Dict[str, Any],
-        database_name: str
-    ) -> str:
-        """
-        Analyze query requirements using Azure OpenAI.
-        
-        Args:
-            query_text: Natural language query
-            relevant_tables: List of relevant table names
-            table_metadata: Metadata for all tables
-            join_graph: Join graph for the database
-            database_name: Database name
-        
-        Returns:
-            Analysis result string
-        """
-        try:
-            prompt = build_query_analysis_prompt(
-                query_text=query_text,
-                relevant_tables=relevant_tables,
-                table_metadata=table_metadata,
-                join_graph=join_graph,
-                database_name=database_name
-            )
-            
-            response = self.model.invoke(prompt)
-            analysis = response.content.strip()
-            
-            logger.info(f"✅ Query analysis completed")
-            return analysis
-            
-        except Exception as e:
-            logger.error(f"❌ Error analyzing query: {str(e)}")
-            return ""
-
+            return "", "0", False, ""
 
 # Singleton instance
 _sql_generator: SQLGenerator = None

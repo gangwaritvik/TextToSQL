@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import "./DatabaseSchemaView.css";
+import FullScreenTableModal from "./FullScreenTableModal";
 
-function DatabaseSchemaView() {
+function DatabaseSchemaView({ refreshTrigger, selectedDatabase }) {
   const [expandedDatabase, setExpandedDatabase] = useState(null);
-  const [expandedSchema, setExpandedSchema] = useState(null); // Only one schema at a time
+  const [expandedSchema, setExpandedSchema] = useState(null);
   const [databases, setDatabases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [fullscreenSchema, setFullscreenSchema] = useState(null);
 
-  // Fetch databases and their schemas on component mount
+  // Fetch databases and their schemas on component mount or refresh
   useEffect(() => {
     const fetchDatabasesAndSchemas = async () => {
       try {
@@ -24,6 +26,7 @@ function DatabaseSchemaView() {
         const dbsWithTables = await Promise.all(
           dbNames.map(async (dbName, dbIndex) => {
             try {
+              // Fetch regular tables
               const tablesResponse = await fetch(
                 `http://localhost:8000/databases/${dbName}/tables`
               );
@@ -32,11 +35,39 @@ function DatabaseSchemaView() {
                 return { id: dbIndex, name: dbName, tables: [] };
               }
 
-              const tablesData = await tablesResponse.json();
+              let tablesData = await tablesResponse.json();
+              tablesData = Array.isArray(tablesData) ? tablesData : [];
+
+              // Fetch uploaded tables for this database
+              let uploadedData = [];
+              try {
+                const uploadedResponse = await fetch(
+                  `http://localhost:8000/upload/tables?database=${dbName}`
+                );
+                if (uploadedResponse.ok) {
+                  uploadedData = await uploadedResponse.json();
+                }
+              } catch (err) {
+                console.warn(`Could not fetch uploaded tables for ${dbName}:`, err);
+              }
+
+              // Get list of uploaded table names
+              const uploadedTableNames = uploadedData.map(t => t.name);
+
+              // Filter out uploaded tables from regular tables list (to avoid duplicates)
+              const regularTablesOnly = tablesData.filter(
+                t => !uploadedTableNames.includes(t.name)
+              );
+
+              // Combine and prepare all tables
+              const allTables = [
+                ...regularTablesOnly.map(t => ({ ...t, isUploaded: false })),
+                ...uploadedData.map(t => ({ ...t, isUploaded: true }))
+              ];
 
               // Fetch schema for each table
               const tablesWithSchema = await Promise.all(
-                (Array.isArray(tablesData) ? tablesData : []).map(async (table, tableIndex) => {
+                allTables.map(async (table, tableIndex) => {
                   try {
                     const schemaResponse = await fetch(
                       `http://localhost:8000/databases/${dbName}/tables/${table.name}/schema`
@@ -48,7 +79,8 @@ function DatabaseSchemaView() {
                         name: table.name,
                         rows: table.rows || 0,
                         columns: [],
-                        schema: []
+                        schema: [],
+                        isUploaded: table.isUploaded
                       };
                     }
 
@@ -58,7 +90,8 @@ function DatabaseSchemaView() {
                       name: table.name,
                       rows: table.rows || 0,
                       columns: schemaData.columns.map((col) => col.name),
-                      schema: schemaData.columns
+                      schema: schemaData.columns,
+                      isUploaded: table.isUploaded
                     };
                   } catch (err) {
                     console.error(`Error fetching schema for ${table.name}:`, err);
@@ -67,7 +100,8 @@ function DatabaseSchemaView() {
                       name: table.name,
                       rows: table.rows || 0,
                       columns: [],
-                      schema: []
+                      schema: [],
+                      isUploaded: table.isUploaded
                     };
                   }
                 })
@@ -98,7 +132,18 @@ function DatabaseSchemaView() {
     };
 
     fetchDatabasesAndSchemas();
-  }, []);
+  }, [refreshTrigger, selectedDatabase]);
+
+  // Handle ESC key to close fullscreen modal
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === "Escape" && fullscreenSchema !== null) {
+        setFullscreenSchema(null);
+      }
+    };
+    window.addEventListener("keydown", handleEscKey);
+    return () => window.removeEventListener("keydown", handleEscKey);
+  }, [fullscreenSchema]);
 
   const toggleDatabase = (id) => {
     setExpandedDatabase(expandedDatabase === id ? null : id);
@@ -169,13 +214,13 @@ function DatabaseSchemaView() {
                       const tableKey = `${db.id}-${table.id}`;
                       const isSchemaExpanded = expandedSchema === tableKey;
                       return (
-                        <div key={table.id} className="table-section">
+                        <div key={table.id} className="table-section" data-uploaded={table.isUploaded || false}>
                           <button
                             className="table-section-header"
                             onClick={() => toggleSchema(db.id, table.id, db.name, table.name)}
                           >
                             <span className="toggle-icon">{isSchemaExpanded ? "▼" : "▶"}</span>
-                            <span className="table-section-icon">📋</span>
+                            <span className="table-section-icon">{table.isUploaded ? "📤" : "📋"}</span>
                             <span className="table-section-name">{table.name}</span>
                             <span className="column-badge">{table.columns.length} cols</span>
                             <span className="row-count-badge">{table.rows || 0} rows</span>
@@ -186,30 +231,53 @@ function DatabaseSchemaView() {
                               {table.schema.length === 0 ? (
                                 <p className="no-schema">No schema information available</p>
                               ) : (
-                                <table className="schema-table">
-                                  <thead>
-                                    <tr>
-                                      <th>Field</th>
-                                      <th>Type</th>
-                                      <th>Nullable</th>
-                                      <th>Key</th>
-                                      <th>Default</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {table.schema.map((col, idx) => (
-                                      <tr key={idx}>
-                                        <td className="field-name">{col.name}</td>
-                                        <td className="field-type">{col.type}</td>
-                                        <td className="field-nullable">{col.nullable ? "YES" : "NO"}</td>
-                                        <td className="field-key">
-                                          {col.primary_key ? "PRI" : "-"}
-                                        </td>
-                                        <td className="field-default">{col.default || "-"}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                                <>
+                                  <div className="schema-header-actions">
+                                    <button 
+                                      className="expand-schema-btn"
+                                      onClick={() => setFullscreenSchema({
+                                        tableName: table.name,
+                                        columns: ['Field', 'Type', 'Nullable', 'Key', 'Default'],
+                                        rows: table.schema.map(col => ({
+                                          Field: col.name,
+                                          Type: col.type,
+                                          Nullable: col.nullable ? 'YES' : 'NO',
+                                          Key: col.primary_key ? 'PRI' : '-',
+                                          Default: col.default || '-'
+                                        }))
+                                      })}
+                                      title="Expand to fullscreen"
+                                    >
+                                      ⛶ Expand
+                                    </button>
+                                  </div>
+                                  <div className="schema-table-scroll">
+                                    <table className="schema-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Field</th>
+                                          <th>Type</th>
+                                          <th>Nullable</th>
+                                          <th>Key</th>
+                                          <th>Default</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {table.schema.map((col, idx) => (
+                                          <tr key={idx}>
+                                            <td className="field-name">{col.name}</td>
+                                            <td className="field-type">{col.type}</td>
+                                            <td className="field-nullable">{col.nullable ? "YES" : "NO"}</td>
+                                            <td className="field-key">
+                                              {col.primary_key ? "PRI" : "-"}
+                                          </td>
+                                          <td className="field-default">{col.default || "-"}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                </>
                               )}
                             </div>
                           )}
@@ -223,6 +291,15 @@ function DatabaseSchemaView() {
           ))
         )}
       </div>
+
+      {/* Fullscreen Schema Modal */}
+      <FullScreenTableModal
+        isOpen={fullscreenSchema !== null}
+        onClose={() => setFullscreenSchema(null)}
+        tableTitle={fullscreenSchema?.tableName || ""}
+        columns={fullscreenSchema?.columns || []}
+        rows={fullscreenSchema?.rows || []}
+      />
     </div>
   );
 }

@@ -1,9 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./ChatMessage.css";
+import FullScreenTableModal from "./FullScreenTableModal";
 
 function ChatMessage({ chat, isInPanel }) {
   const [expanded, setExpanded] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
+
+  // Handle ESC key to close fullscreen modal
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === "Escape" && isFullscreenOpen) {
+        setIsFullscreenOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleEscKey);
+    return () => window.removeEventListener("keydown", handleEscKey);
+  }, [isFullscreenOpen]);
 
   // Copy SQL to clipboard
   const handleCopySQL = () => {
@@ -81,7 +94,18 @@ function ChatMessage({ chat, isInPanel }) {
 
           {/* Generated SQL */}
           <div className="content-section">
-            <h4 className="section-title">⚙️ Generated SQL</h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+              <h4 className="section-title" style={{ margin: 0 }}>⚙️ Generated SQL</h4>
+              {chat.executionError && (
+                <button 
+                  className="danger-button"
+                  disabled
+                  title="This operation has been blocked for safety"
+                >
+                  🚨 DANGEROUS - BLOCKED
+                </button>
+              )}
+            </div>
             {chat.sql ? (
               <div className="sql-box">
                 <pre className="sql-code">{chat.sql}</pre>
@@ -104,37 +128,50 @@ function ChatMessage({ chat, isInPanel }) {
 
           {/* Query Results */}
           <div className="content-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', gap: '8px', flexWrap: 'wrap' }}>
               <h4 className="section-title" style={{ margin: 0 }}>📈 Query Results</h4>
-              <button 
-                className="sql-btn" 
-                style={{ fontSize: '0.7em' }}
-                onClick={handleDownloadCSV}
-                disabled={!chat.results || chat.results.length === 0}
-                title="Download results as CSV"
-              >
-                📥 Download CSV
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  className="sql-btn" 
+                  style={{ fontSize: '0.7em' }}
+                  onClick={handleDownloadCSV}
+                  disabled={!chat.results || chat.results.length === 0}
+                  title="Download results as CSV"
+                >
+                  📥 Download CSV
+                </button>
+                <button 
+                  className="sql-btn" 
+                  style={{ fontSize: '0.7em' }}
+                  onClick={() => setIsFullscreenOpen(true)}
+                  disabled={!chat.results || chat.results.length === 0}
+                  title="Expand to fullscreen"
+                >
+                  ⛶ Expand
+                </button>
+              </div>
             </div>
             {chat.results && chat.results.length > 0 ? (
-              <table className="results-table">
-                <thead>
-                  <tr>
-                    {Object.keys(chat.results[0] || {}).map((key) => (
-                      <th key={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {chat.results.map((row, idx) => (
-                    <tr key={idx}>
-                      {Object.values(row).map((val, i) => (
-                        <td key={i}>{String(val)}</td>
+              <div className="results-wrapper">
+                <table className="results-table">
+                  <thead>
+                    <tr>
+                      {Object.keys(chat.results[0] || {}).map((key) => (
+                        <th key={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {chat.results.map((row, idx) => (
+                      <tr key={idx}>
+                        {Object.values(row).map((val, i) => (
+                          <td key={i}>{String(val)}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
                 No results to display
@@ -168,6 +205,15 @@ function ChatMessage({ chat, isInPanel }) {
           </div>
         </div>
       )}
+
+      {/* Fullscreen Table Modal */}
+      <FullScreenTableModal
+        isOpen={isFullscreenOpen}
+        onClose={() => setIsFullscreenOpen(false)}
+        tableTitle="Query Results"
+        columns={chat.results && chat.results.length > 0 ? Object.keys(chat.results[0]) : []}
+        rows={chat.results || []}
+      />
     </div>
   );
 }

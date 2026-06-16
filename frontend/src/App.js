@@ -4,16 +4,20 @@ import DatabaseSchemaView from "./components/DatabaseSchemaView";
 import ViewDataTable from "./components/ViewDataTable";
 import QueryResultsPanel from "./components/QueryResultsPanel";
 import QueryModal from "./components/QueryModal";
+import FileUploadModal from "./components/FileUploadModal";
 import "./App.css";
 
 function App() {
   const [activeView, setActiveView] = useState("query");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFileUploadOpen, setIsFileUploadOpen] = useState(false);
   const [queryResults, setQueryResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedDatabase, setSelectedDatabase] = useState(() => {
     // Load from localStorage on mount, default to "fastapi_db"
     return localStorage.getItem("selectedDatabase") || "fastapi_db";
   });
+  const [uploadRefreshTrigger, setUploadRefreshTrigger] = useState(0);
 
   // Save selected database to localStorage whenever it changes
   useEffect(() => {
@@ -22,6 +26,7 @@ function App() {
 
   const handleNewChat = async (query) => {
     try {
+      setIsLoading(true);
       // Call backend API to process query
       const response = await fetch("http://localhost:8000/query", {
         method: "POST",
@@ -58,6 +63,8 @@ function App() {
         complexity: "N/A"
       };
       setQueryResults([...queryResults, errorResult]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -82,6 +89,19 @@ function App() {
     handleCloseModal();
   };
 
+  const handleOpenFileUpload = () => {
+    setIsFileUploadOpen(true);
+  };
+
+  const handleCloseFileUpload = () => {
+    setIsFileUploadOpen(false);
+  };
+
+  const handleUploadSuccess = (result) => {
+    // Trigger refresh in schema and data views
+    setUploadRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <div className="app-layout">
       <QueryModal 
@@ -89,8 +109,18 @@ function App() {
         onClose={handleCloseModal} 
         onSubmit={handleModalSubmit}
       />
+      <FileUploadModal
+        isOpen={isFileUploadOpen}
+        onClose={handleCloseFileUpload}
+        selectedDatabase={selectedDatabase}
+        onUploadSuccess={handleUploadSuccess}
+      />
       <div className="sidebar">
-        <Sidebar activeView={activeView} onViewChange={setActiveView} />
+        <Sidebar 
+          activeView={activeView} 
+          onViewChange={setActiveView}
+          onFileUploadClick={handleOpenFileUpload}
+        />
       </div>
       <div className="main-content">
         {activeView === "query" && (
@@ -98,6 +128,7 @@ function App() {
             <div className="results-panel-area">
               <QueryResultsPanel 
                 results={queryResults} 
+                isLoading={isLoading}
                 onCloseTab={handleCloseTab}
                 onClearAll={handleClearAll}
                 onOpenNewQuery={handleOpenModal}
@@ -108,10 +139,16 @@ function App() {
           </div>
         )}
         {activeView === "schema" && (
-          <DatabaseSchemaView />
+          <DatabaseSchemaView 
+            refreshTrigger={uploadRefreshTrigger}
+            selectedDatabase={selectedDatabase}
+          />
         )}
         {activeView === "data" && (
-          <ViewDataTable />
+          <ViewDataTable 
+            refreshTrigger={uploadRefreshTrigger}
+            selectedDatabase={selectedDatabase}
+          />
         )}
       </div>
     </div>

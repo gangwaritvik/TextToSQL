@@ -201,27 +201,34 @@ class DatabaseEmbedder:
             print(f"❌ Error in embed_all_databases: {str(e)}")
             raise
     
-    async def search_similar_tables(self, database_name: str, query_text: str, k: int = 5) -> List[Dict[str, Any]]:
-        """Search for similar tables using query embeddings"""
+    async def search_similar_tables(self, database_name: str, query_text: str, k: int = 5, similarity_threshold: float = 2.5) -> List[Dict[str, Any]]:
+        """Search for similar tables using query embeddings
+        
+        Args:
+            database_name: Database to search
+            query_text: Natural language query
+            k: Max results to return
+            similarity_threshold: L2 distance threshold for filtering (lower = stricter)
+        """
         try:
             # Get query embedding
             query_embedding = await self.embed_text(query_text)
             
             # Search using vector store
             vector_store = get_vector_store()
-            results = vector_store.search_similar_tables(database_name, query_embedding, k)
+            results = vector_store.search_similar_tables(database_name, query_embedding, k, similarity_threshold)
             
             return results
         except Exception as e:
             print(f"❌ Search error: {str(e)}")
             return []
     
-    def search_similar_tables_sync(self, database_name: str, query_text: str, k: int = 5) -> List[Dict[str, Any]]:
+    def search_similar_tables_sync(self, database_name: str, query_text: str, k: int = 5, similarity_threshold: float = 2.5) -> List[Dict[str, Any]]:
         """Synchronous wrapper for search_similar_tables"""
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            results = loop.run_until_complete(self.search_similar_tables(database_name, query_text, k))
+            results = loop.run_until_complete(self.search_similar_tables(database_name, query_text, k, similarity_threshold))
             loop.close()
             return results
         except Exception as e:
