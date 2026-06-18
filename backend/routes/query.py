@@ -21,6 +21,7 @@ from backend.core.sql_generator import get_sql_generator
 from backend.core.query_executor import get_query_executor
 from backend.core.file_handler import FileUploadHandler
 from backend.utils.state import get_metadata, get_join_graphs
+from backend.utils.join_graph import extract_join_path_from_sql
 
 # Create logger
 logger = logging.getLogger(__name__)
@@ -294,10 +295,10 @@ Provide only the summary, no additional text."""
         # Get the actual table names that were sent to the LLM (includes uploaded tables)
         actual_tables_sent = [table["name"] for table in database_metadata]
         
-        # Build join path string from database_join_graph
-        join_path = ""
-        if database_join_graph.get("joins"):
-            join_path = " → ".join([f"{join['source_table']}.{join.get('source_column', 'id')} = {join['target_table']}.{join.get('target_column', 'id')}" for join in database_join_graph["joins"]])
+        # Build join path from the joins ACTUALLY used in the generated SQL
+        # (not the entire database's foreign-key graph). Single-table queries
+        # therefore correctly show no join path.
+        join_path = extract_join_path_from_sql(generated_sql)
         
         # Calculate total execution time
         execution_time = f"{int((time.time() - start_time) * 1000)}ms"

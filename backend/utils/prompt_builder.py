@@ -116,6 +116,7 @@ Instructions:
 4. Include necessary JOINs if multiple tables are required
 5. Use appropriate WHERE clauses to filter the data
 6. Ensure the query is valid PostgreSQL syntax
+7. Limit the decimal precision to 2 places for numeric columns.
 
 Return your response in EXACTLY this format:
 DANGEROUS: [YES/NO]

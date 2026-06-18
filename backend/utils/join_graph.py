@@ -5,6 +5,7 @@ Helps with understanding table relationships for query processing
 
 from sqlalchemy import inspect
 from typing import Dict, List, Any, Tuple
+import re
 import sys
 from pathlib import Path
 
@@ -164,3 +165,37 @@ def print_join_graph(join_graph: Dict[str, Any]) -> None:
                 print(f"      (FK: {join['constraint_name']})")
     
     print("="*60)
+
+
+def extract_join_path_from_sql(sql_query: str) -> str:
+    """
+    Build the join path from the JOIN ... ON clauses actually present in a
+    generated SQL statement.
+
+    Unlike the full database join graph (which lists every foreign-key
+    relationship in the database), this reflects only the joins the query
+    really uses, so single-table queries correctly produce an empty join path.
+
+    Returns:
+        A string of "left = right" conditions joined by ' → ', or '' when the
+        query performs no joins.
+    """
+    if not sql_query:
+        return ""
+
+    # Capture the condition following each ON, up to the next SQL clause keyword.
+    pattern = re.compile(
+        r"\bON\b\s+(.+?)"
+        r"(?=\s+(?:INNER\s+|LEFT\s+|RIGHT\s+|FULL\s+|CROSS\s+|OUTER\s+)*JOIN\b"
+        r"|\s+WHERE\b|\s+GROUP\s+BY\b|\s+ORDER\s+BY\b|\s+HAVING\b"
+        r"|\s+LIMIT\b|\s+OFFSET\b|\s+UNION\b|\s*\)|\s*;|\s*$)",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    conditions = []
+    for match in pattern.finditer(sql_query):
+        condition = re.sub(r"\s+", " ", match.group(1).strip())
+        if condition:
+            conditions.append(condition)
+
+    return " → ".join(conditions)

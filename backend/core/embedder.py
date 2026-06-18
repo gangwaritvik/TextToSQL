@@ -5,6 +5,7 @@ Embeds table schemas for semantic search using Azure OpenAI embeddings
 
 import asyncio
 import json
+import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pathlib import Path
@@ -15,12 +16,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from backend.db.db import get_engine
 from backend.utils.state import get_metadata
 from backend.core.vector_store import get_vector_store
-from backend.config.azure_client import get_azure_client, get_embedding_model
+from backend.config.azure_client import get_azure_client, get_async_azure_client, get_embedding_model
 from sqlalchemy import text
 
-# Get Azure client and embedding model
+# Get Azure clients and embedding model
 client = get_azure_client()
+async_client = get_async_azure_client()
 EMBEDDING_MODEL = get_embedding_model()
+
+# Bound the number of concurrent embedding requests so we parallelize without
+# overrunning Azure OpenAI rate limits. Configurable via EMBEDDING_CONCURRENCY.
+EMBEDDING_CONCURRENCY = int(os.getenv("EMBEDDING_CONCURRENCY", "10"))
+_embedding_semaphore = asyncio.Semaphore(EMBEDDING_CONCURRENCY)
+
 
 
 class DatabaseEmbedder:
@@ -30,7 +38,7 @@ class DatabaseEmbedder:
         self.vector_store = get_vector_store()
         
     async def embed_text(self, text: str) -> List[float]:
-        """Get embedding from Azure OpenAI"""
+        """Get embedding from Azure OpenAI (async, bounded concurrency)"""
         try:
             # Ensure text is a string and not empty
             if not isinstance(text, str):
@@ -39,10 +47,13 @@ class DatabaseEmbedder:
             if not text or not text.strip():
                 raise ValueError("Empty text cannot be embedded")
             
-            response = client.embeddings.create(
-                input=text,
-                model=EMBEDDING_MODEL
-            )
+            # Use the async client so concurrent embed_text calls actually run
+            # in parallel; the semaphore caps simultaneous in-flight requests.
+            async with _embedding_semaphore:
+                response = await async_client.embeddings.create(
+                    input=text,
+                    model=EMBEDDING_MODEL
+                )
             return response.data[0].embedding
         except Exception as e:
             print(f"❌ Embedding error for text (len={len(text) if isinstance(text, str) else 'N/A'}): {str(e)}")
