@@ -7,8 +7,8 @@ Utility modules for Text-to-SQL application
 - Application state management
 """
 
-from .metadata import build_metadata_for_database
-from .join_graph import build_join_graph_for_database, build_all_join_graphs
+from .metadata_builder import build_metadata_for_database, build_all_metadata
+from .join_graph_builder import build_join_graph_for_database, build_all_join_graphs
 from .prompt_builder import build_sql_generation_prompt
 from .logger import get_query_logger, log_query, cleanup_logs
 from .state import (
@@ -22,6 +22,7 @@ from .state import (
 
 __all__ = [
     "build_metadata_for_database",
+    "build_all_metadata",
     "build_join_graph_for_database",
     "build_all_join_graphs",
     "build_sql_generation_prompt",

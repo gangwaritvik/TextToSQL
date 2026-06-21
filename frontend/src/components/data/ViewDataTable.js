@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./ViewDataTable.css";
-import FullScreenTableModal from "./FullScreenTableModal";
+import FullScreenTableModal from "../common/FullScreenTableModal";
 
 function ViewDataTable({ refreshTrigger, selectedDatabase: initialDatabase }) {
   const [databases, setDatabases] = useState([]);

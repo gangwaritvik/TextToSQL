@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./ChatMessage.css";
-import FullScreenTableModal from "./FullScreenTableModal";
+import FullScreenTableModal from "../common/FullScreenTableModal";
 
 function ChatMessage({ chat, isInPanel }) {
   const [expanded, setExpanded] = useState(true);

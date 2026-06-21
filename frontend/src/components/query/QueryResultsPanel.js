@@ -62,7 +62,7 @@ function QueryResultsPanel({ results, isLoading, onCloseTab, onClearAll, onOpenN
         <div className="empty-state">
           <div className="empty-message">
             <p>No queries yet</p>
-            <p className="empty-hint">Click the ✚ button to create a new query</p>
+            <p className="empty-hint">Click the <b style={{ color: 'white' }}>Query</b> button to create a new query</p>
           </div>
         </div>
       </div>

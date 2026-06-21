@@ -22,8 +22,8 @@ logging.basicConfig(
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.db.db import get_engine
-from backend.utils.join_graph import build_all_join_graphs
-from backend.utils.metadata import build_all_metadata
+from backend.utils.join_graph_builder import build_all_join_graphs
+from backend.utils.metadata_builder import build_all_metadata
 from backend.utils.state import set_join_graphs, set_metadata
 from backend.core.file_handler import FileUploadHandler
 from backend.routes import query_router, databases_router, join_graphs_router, metadata_router, upload_router

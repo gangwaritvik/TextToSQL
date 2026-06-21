@@ -169,33 +169,72 @@ def print_join_graph(join_graph: Dict[str, Any]) -> None:
 
 def extract_join_path_from_sql(sql_query: str) -> str:
     """
-    Build the join path from the JOIN ... ON clauses actually present in a
-    generated SQL statement.
+    Build the join path from the JOIN clauses actually present in a generated
+    SQL statement.
 
     Unlike the full database join graph (which lists every foreign-key
     relationship in the database), this reflects only the joins the query
     really uses, so single-table queries correctly produce an empty join path.
 
+    Handles the common join forms:
+      - ``JOIN ... ON a = b``      -> the ``a = b`` condition
+      - ``JOIN ... USING (cols)``  -> ``table USING (cols)``
+      - ``NATURAL``/``CROSS`` join -> ``NATURAL JOIN table`` / ``CROSS JOIN table``
+
     Returns:
-        A string of "left = right" conditions joined by ' → ', or '' when the
-        query performs no joins.
+        A string of join segments joined by ' → ', or '' when the query
+        performs no joins.
     """
     if not sql_query:
         return ""
 
-    # Capture the condition following each ON, up to the next SQL clause keyword.
-    pattern = re.compile(
-        r"\bON\b\s+(.+?)"
-        r"(?=\s+(?:INNER\s+|LEFT\s+|RIGHT\s+|FULL\s+|CROSS\s+|OUTER\s+)*JOIN\b"
-        r"|\s+WHERE\b|\s+GROUP\s+BY\b|\s+ORDER\s+BY\b|\s+HAVING\b"
-        r"|\s+LIMIT\b|\s+OFFSET\b|\s+UNION\b|\s*\)|\s*;|\s*$)",
+    # Isolate the FROM clause (up to the next top-level clause) so we only look
+    # at join syntax and not, say, an ON inside a later subquery.
+    from_match = re.search(
+        r"\bFROM\b\s+(.+?)"
+        r"(?=\s+\bWHERE\b|\s+\bGROUP\s+BY\b|\s+\bORDER\s+BY\b|\s+\bHAVING\b"
+        r"|\s+\bLIMIT\b|\s+\bOFFSET\b|\s+\bUNION\b|\s*;|\s*$)",
+        sql_query,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not from_match:
+        return ""
+
+    from_clause = re.sub(r"\s+", " ", from_match.group(1).strip())
+
+    # Reusable fragment matching an optional join type (NATURAL / INNER / CROSS /
+    # LEFT|RIGHT|FULL [OUTER]).
+    join_type = (
+        r"(?:NATURAL\s+)?(?:INNER\s+|CROSS\s+|(?:LEFT|RIGHT|FULL)\s+(?:OUTER\s+)?)?"
+    )
+    # Keywords that must never be captured as a table alias.
+    alias_block = (
+        r"(?!(?:ON|USING|NATURAL|INNER|LEFT|RIGHT|FULL|CROSS|OUTER|JOIN"
+        r"|WHERE|GROUP|ORDER|HAVING|LIMIT|OFFSET|UNION)\b)"
+    )
+
+    join_pattern = re.compile(
+        rf"(?P<type>{join_type})JOIN\s+"
+        rf"(?P<table>[`\"\w.]+)"
+        rf"(?:\s+(?:AS\s+)?{alias_block}[`\"\w]+)?"
+        rf"(?:\s+ON\s+(?P<on>.+?)|\s+USING\s*\(\s*(?P<using>[^)]+?)\s*\))?"
+        rf"(?=\s+{join_type}JOIN\b|\s*$)",
         re.IGNORECASE | re.DOTALL,
     )
 
-    conditions = []
-    for match in pattern.finditer(sql_query):
-        condition = re.sub(r"\s+", " ", match.group(1).strip())
-        if condition:
-            conditions.append(condition)
+    segments = []
+    for match in join_pattern.finditer(from_clause):
+        on_cond = (match.group("on") or "").strip()
+        using_cols = (match.group("using") or "").strip()
+        table = match.group("table")
 
-    return " → ".join(conditions)
+        if on_cond:
+            segments.append(re.sub(r"\s+", " ", on_cond))
+        elif using_cols:
+            segments.append(f"{table} USING ({using_cols})")
+        else:
+            # NATURAL / CROSS / bare JOIN have no explicit condition.
+            label = re.sub(r"\s+", " ", match.group("type").strip()).upper()
+            segments.append(f"{label} JOIN {table}" if label else f"JOIN {table}")
+
+    return " → ".join(segments)

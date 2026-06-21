@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "./components/Sidebar";
-import DatabaseSchemaView from "./components/DatabaseSchemaView";
-import ViewDataTable from "./components/ViewDataTable";
-import QueryResultsPanel from "./components/QueryResultsPanel";
-import QueryModal from "./components/QueryModal";
-import FileUploadModal from "./components/FileUploadModal";
+import Sidebar from "./components/layout/Sidebar";
+import DatabaseSchemaView from "./components/schema/DatabaseSchemaView";
+import ViewDataTable from "./components/data/ViewDataTable";
+import QueryResultsPanel from "./components/query/QueryResultsPanel";
+import QueryModal from "./components/query/QueryModal";
+import FileUploadModal from "./components/upload/FileUploadModal";
 import "./App.css";
 
 function App() {

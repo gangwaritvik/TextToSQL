@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./DatabaseSchemaView.css";
-import FullScreenTableModal from "./FullScreenTableModal";
+import FullScreenTableModal from "../common/FullScreenTableModal";
 
 function DatabaseSchemaView({ refreshTrigger, selectedDatabase }) {
   const [expandedDatabase, setExpandedDatabase] = useState(null);
