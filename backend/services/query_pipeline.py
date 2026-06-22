@@ -234,7 +234,7 @@ async def run_query_pipeline(request: QueryRequest) -> QueryResponse:
             tokens_used = sql_tokens
             logger.info(f"Using execution error as summary: {execution_error[:80]}...")
         else:
-            summary_prompt = f"""Based on the following SQL query and results, provide a brief 2-3 sentence summary of what the data shows.
+            summary_prompt = f"""Based on the following SQL query and results, provide a summary of what the data shows.You can also include additional insights about the data, such as trends, outliers, or interesting patterns. Be concise but informative.
 
 Query: {request.query}
 SQL: {generated_sql}
