@@ -227,9 +227,6 @@ AZURE_OPENAI_API_VERSION="2025-01-01-preview"
 EMBEDDING_MODEL=text-embedding-3-small
 ```
 
-> ⚠️ **Security:** Never share or commit your real `AZURE_OPENAI_API_KEY` or DB
-> password. Rotate the key if it has ever been exposed. Add `.env.local` to
-> `.gitignore`.
 
 ---
 
