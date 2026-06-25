@@ -6,10 +6,7 @@ Helps with understanding table relationships for query processing
 from sqlalchemy import inspect
 from typing import Dict, List, Any, Tuple
 import re
-import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from backend.db.db import get_engine
 
 

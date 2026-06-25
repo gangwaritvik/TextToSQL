@@ -7,7 +7,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+  border-bottom: 1px solid rgba(47, 111, 237, 0.15);
 }
 
 .file-upload-modal .close-btn {
@@ -39,34 +39,105 @@
   font-size: 0.9em;
   margin-bottom: 20px;
   padding: 10px;
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(47, 111, 237, 0.05);
   border-radius: 6px;
-  border-left: 3px solid rgba(59, 130, 246, 0.3);
+  border-left: 3px solid rgba(47, 111, 237, 0.3);
 }
 
 .database-info strong {
   color: var(--color-primary);
 }
 
+.upload-destination {
+  margin-bottom: 20px;
+}
+
+.destination-title {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 10px 0;
+}
+
+.destination-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(47, 111, 237, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.destination-option:hover {
+  border-color: var(--color-primary);
+  background: rgba(47, 111, 237, 0.04);
+}
+
+.destination-option.active {
+  border-color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.destination-option input[type="radio"] {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  margin: 0;
+}
+
+.destination-option .option-text {
+  font-size: 0.9em;
+  color: var(--color-text);
+}
+
+.destination-option .option-text strong {
+  color: var(--color-primary);
+}
+
+.new-db-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  padding: 10px 12px;
+  font-size: 0.9em;
+  color: var(--color-text);
+  background: var(--color-surface, #fff);
+  border: 1px solid rgba(47, 111, 237, 0.3);
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
+}
+
+.new-db-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.new-db-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .drop-zone {
-  border: 2px dashed rgba(59, 130, 246, 0.3);
+  border: 2px dashed rgba(47, 111, 237, 0.3);
   border-radius: 12px;
   padding: 40px 20px;
   text-align: center;
   transition: all 0.3s ease;
-  background: rgba(59, 130, 246, 0.02);
+  background: rgba(47, 111, 237, 0.02);
   cursor: pointer;
 }
 
 .drop-zone:hover:not(.disabled) {
-  border-color: rgba(59, 130, 246, 0.5);
-  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(47, 111, 237, 0.5);
+  background: rgba(47, 111, 237, 0.05);
 }
 
 .drop-zone.dragging {
   border-color: var(--color-primary);
-  background: rgba(59, 130, 246, 0.1);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: rgba(47, 111, 237, 0.1);
+  box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.1);
 }
 
 .drop-zone.disabled {
@@ -95,8 +166,8 @@
 .file-input-label {
   display: inline-block;
   padding: 10px 20px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(0, 255, 200, 0.1));
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, rgba(47, 111, 237, 0.1), rgba(47, 111, 237, 0.1));
+  border: 1px solid rgba(47, 111, 237, 0.2);
   border-radius: 6px;
   color: var(--color-primary);
   font-weight: 600;
@@ -106,17 +177,17 @@
 }
 
 .file-input-label:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(0, 255, 200, 0.15));
-  border-color: rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, rgba(47, 111, 237, 0.15), rgba(47, 111, 237, 0.15));
+  border-color: rgba(47, 111, 237, 0.3);
   transform: translateY(-2px);
 }
 
 .file-info {
   margin-top: 20px;
   padding: 16px;
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(47, 111, 237, 0.05);
   border-radius: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(47, 111, 237, 0.1);
 }
 
 .file-info .info-title {
@@ -144,7 +215,7 @@
 
 .file-info li::before {
   content: "✓";
-  color: #10b981;
+  color: #2c3a52;
   font-weight: bold;
   margin-right: 8px;
 }
@@ -158,15 +229,15 @@
 }
 
 .upload-status.success {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #10b981;
+  background: rgba(47, 111, 237, 0.1);
+  border: 1px solid rgba(47, 111, 237, 0.3);
+  color: #2c3a52;
 }
 
 .upload-status.error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  background: rgba(47, 111, 237, 0.1);
+  border: 1px solid rgba(47, 111, 237, 0.3);
+  color: #2c3a52;
 }
 
 .upload-progress {
@@ -181,7 +252,7 @@
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(59, 130, 246, 0.2);
+  border: 3px solid rgba(47, 111, 237, 0.2);
   border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -205,7 +276,7 @@
 
 .file-upload-modal .modal-footer {
   padding: 16px 24px;
-  border-top: 1px solid rgba(59, 130, 246, 0.15);
+  border-top: 1px solid rgba(47, 111, 237, 0.15);
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -222,14 +293,14 @@
 }
 
 .file-upload-modal .btn-secondary {
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(47, 111, 237, 0.08);
   color: var(--color-primary);
-  border: 1px solid rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(47, 111, 237, 0.15);
 }
 
 .file-upload-modal .btn-secondary:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.25);
+  background: rgba(47, 111, 237, 0.15);
+  border-color: rgba(47, 111, 237, 0.25);
 }
 
 .file-upload-modal .btn:disabled {

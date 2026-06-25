@@ -7,12 +7,9 @@ import json
 import numpy as np
 import faiss
 from typing import List, Dict, Any, Optional
-from pathlib import Path
 import asyncio
 
-# Storage paths
-EMBEDDINGS_DIR = Path(__file__).parent / ".." / "embeddings"
-EMBEDDINGS_DIR.mkdir(exist_ok=True)
+from backend.paths import EMBEDDINGS_DIR
 
 
 class VectorStore:
@@ -68,7 +65,44 @@ class VectorStore:
         except Exception as e:
             print(f"❌ Error building FAISS indices: {str(e)}")
             raise
-    
+
+    def get_indexed_tables(self, database_name: str) -> set:
+        """Return the set of table names currently indexed for a database."""
+        return {e["table"] for e in self.embeddings_store.get(database_name, [])}
+
+    def set_database_index(self, database_name: str, entries: List[Dict[str, Any]]) -> None:
+        """(Re)build a single database's FAISS index from ``entries`` and persist it.
+
+        Used to keep the index in sync as uploaded tables are added or removed,
+        without rebuilding every database. Passing an empty ``entries`` list drops
+        the index and its persisted files.
+        """
+        index_path = EMBEDDINGS_DIR / f"{database_name}_index.faiss"
+        metadata_path = EMBEDDINGS_DIR / f"{database_name}_metadata.json"
+
+        if not entries:
+            self.faiss_indices.pop(database_name, None)
+            self.embeddings_store.pop(database_name, None)
+            if index_path.exists():
+                index_path.unlink()
+            if metadata_path.exists():
+                metadata_path.unlink()
+            return
+
+        embeddings_array = np.array(
+            [np.array(e["embedding"], dtype=np.float32) for e in entries]
+        )
+        dimension = embeddings_array.shape[1]
+        index = faiss.IndexFlatL2(dimension)
+        index.add(embeddings_array)
+
+        self.faiss_indices[database_name] = index
+        self.embeddings_store[database_name] = entries
+
+        faiss.write_index(index, str(index_path))
+        with open(metadata_path, "w") as f:
+            json.dump(entries, f, indent=2)
+
     def search_similar_tables(
         self, 
         database_name: str, 

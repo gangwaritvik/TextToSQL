@@ -232,25 +232,24 @@ function DatabaseSchemaView({ refreshTrigger, selectedDatabase }) {
                                 <p className="no-schema">No schema information available</p>
                               ) : (
                                 <>
-                                  <div className="schema-header-actions">
-                                    <button 
-                                      className="expand-schema-btn"
-                                      onClick={() => setFullscreenSchema({
-                                        tableName: table.name,
-                                        columns: ['Field', 'Type', 'Nullable', 'Key', 'Default'],
-                                        rows: table.schema.map(col => ({
-                                          Field: col.name,
-                                          Type: col.type,
-                                          Nullable: col.nullable ? 'YES' : 'NO',
-                                          Key: col.primary_key ? 'PRI' : '-',
-                                          Default: col.default || '-'
-                                        }))
-                                      })}
-                                      title="Expand to fullscreen"
-                                    >
-                                      ⛶ Expand
-                                    </button>
-                                  </div>
+                                  <button
+                                    className="expand-btn expand-btn--floating"
+                                    onClick={() => setFullscreenSchema({
+                                      tableName: table.name,
+                                      columns: ['Field', 'Type', 'Nullable', 'Key', 'Default'],
+                                      rows: table.schema.map(col => ({
+                                        Field: col.name,
+                                        Type: col.type,
+                                        Nullable: col.nullable ? 'YES' : 'NO',
+                                        Key: col.primary_key ? 'PRI' : '-',
+                                        Default: col.default || '-'
+                                      }))
+                                    })}
+                                    title="Expand to fullscreen"
+                                    aria-label="Expand schema table"
+                                  >
+                                    ⛶
+                                  </button>
                                   <div className="schema-table-scroll">
                                     <table className="schema-table">
                                       <thead>

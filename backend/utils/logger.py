@@ -5,13 +5,10 @@ Automatically cleans up logs on backend shutdown
 
 import logging
 import json
-from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
 
-# Logs directory
-LOGS_DIR = Path(__file__).parent / ".." / "logs" / "queries"
-LOGS_DIR.mkdir(parents=True, exist_ok=True)
+from backend.paths import LOGS_DIR
 
 
 def get_query_logger():
@@ -54,6 +51,10 @@ def log_query(query_text: str, database: str, tables: list, sql: str, status: st
     }
     
     logger.info(json.dumps(log_entry))
+    
+    # Flush all handlers to ensure data is written to disk
+    for handler in logger.handlers:
+        handler.flush()
 
 
 def cleanup_logs():

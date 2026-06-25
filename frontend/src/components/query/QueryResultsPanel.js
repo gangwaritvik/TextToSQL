@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import ChatMessage from "./ChatMessage";
 import "./QueryResultsPanel.css";
 
-function QueryResultsPanel({ results, isLoading, onCloseTab, onClearAll, onOpenNewQuery, selectedDatabase, onDatabaseChange }) {
+function QueryResultsPanel({ results, isLoading, onCloseTab, onClearAll, onOpenNewQuery, selectedDatabase, onDatabaseChange, refreshTrigger }) {
   const [selectedTabId, setSelectedTabId] = useState(results[0]?.id || null);
   const [databases, setDatabases] = useState([]);
   const [loadingDatabases, setLoadingDatabases] = useState(true);
 
-  // Fetch available databases on mount
+  // Fetch available databases on mount and whenever an upload/DB creation occurs
   useEffect(() => {
     const fetchDatabases = async () => {
       try {
@@ -21,7 +21,7 @@ function QueryResultsPanel({ results, isLoading, onCloseTab, onClearAll, onOpenN
       }
     };
     fetchDatabases();
-  }, []);
+  }, [refreshTrigger]);
 
   // Auto-switch to newly added query
   useEffect(() => {
@@ -62,7 +62,7 @@ function QueryResultsPanel({ results, isLoading, onCloseTab, onClearAll, onOpenN
         <div className="empty-state">
           <div className="empty-message">
             <p>No queries yet</p>
-            <p className="empty-hint">Click the <b style={{ color: 'white' }}>Query</b> button to create a new query</p>
+            <p className="empty-hint">Click the <b style={{ color: 'black' }}>Query</b> button to create a new query</p>
           </div>
         </div>
       </div>
@@ -131,13 +131,6 @@ function QueryResultsPanel({ results, isLoading, onCloseTab, onClearAll, onOpenN
               ))}
             </select>
           </div>
-          <button 
-            className="query-btn" 
-            onClick={onOpenNewQuery}
-            title="Create a new query"
-          >
-            Query
-          </button>
           {results.length > 1 && (
             <button className="clear-all-btn" onClick={onClearAll}>
               Clear All
@@ -172,6 +165,14 @@ function QueryResultsPanel({ results, isLoading, onCloseTab, onClearAll, onOpenN
             </button>
           </div>
         ))}
+        <button
+          className="tab tab-add"
+          onClick={onOpenNewQuery}
+          title="Create a new query"
+          aria-label="Add new query"
+        >
+          +
+        </button>
       </div>
 
       <div className="results-content">

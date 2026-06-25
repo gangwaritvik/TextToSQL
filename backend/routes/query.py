@@ -10,12 +10,7 @@ These handlers stay thin: the end-to-end query logic lives in
 
 from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any
-import sys
-from pathlib import Path
 import logging
-
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from backend.db import QueryRequest, QueryResponse
 from backend.core.embedder import get_embedder

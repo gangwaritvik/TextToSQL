@@ -1,8 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './FullScreenTableModal.css';
 
 function FullScreenTableModal({ isOpen, onClose, tableTitle, columns, rows }) {
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      // Add ESC key handler
+      const handleEsc = (e) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleEsc);
+      return () => {
+        document.body.style.overflow = 'auto';
+        window.removeEventListener('keydown', handleEsc);
+      };
+    }
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

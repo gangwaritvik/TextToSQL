@@ -176,39 +176,50 @@ function ViewDataTable({ refreshTrigger, selectedDatabase: initialDatabase }) {
             </div>
 
             <div className="selector-group">
-              <label className="selector-label">Select Table:</label>
-              <div className="selector-buttons">
-                {tables.length === 0 && uploadedTables.length === 0 ? (
-                  <span className="no-items">No tables in this database</span>
-                ) : (
-                  <>
-                    {tables.length > 0 && (
-                      <div className="table-section-header">📋 Existing Tables</div>
-                    )}
-                    {tables.map((table) => (
-                      <button
-                        key={table.name}
-                        className={`selector-btn table-btn ${selectedTable === table.name ? "active" : ""}`}
-                        onClick={() => setSelectedTable(table.name)}
-                      >
-                        📋 {table.name} ({table.rows} rows)
-                      </button>
-                    ))}
-                    {uploadedTables.length > 0 && (
-                      <div className="table-section-header uploaded">📤 Uploaded Files</div>
-                    )}
-                    {uploadedTables.map((table) => (
-                      <button
-                        key={table.name}
-                        className={`selector-btn table-btn uploaded ${selectedTable === table.name ? "active" : ""}`}
-                        onClick={() => setSelectedTable(table.name)}
-                      >
-                        📤 {table.name} ({table.rows} rows)
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
+              <label style={{ paddingTop: 5 }} className="selector-label">Select Table:</label>
+              {tables.length === 0 && uploadedTables.length === 0 ? (
+                <span className="no-items">No tables in this database</span>
+              ) : (
+                <div className="tables-split">
+                  <div className="tables-pane tables-pane--existing">
+                    <div className="table-section-header">📋 Existing Tables</div>
+                    <div className="tables-list">
+                      {tables.length === 0 ? (
+                        <span className="no-items">No existing tables</span>
+                      ) : (
+                        tables.map((table) => (
+                          <button
+                            key={table.name}
+                            className={`selector-btn table-btn ${selectedTable === table.name ? "active" : ""}`}
+                            onClick={() => setSelectedTable(table.name)}
+                          >
+                            📋 {table.name} ({table.rows} rows)
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="tables-pane tables-pane--uploaded">
+                    <div className="table-section-header uploaded">📤 Uploaded Files</div>
+                    <div className="tables-list">
+                      {uploadedTables.length === 0 ? (
+                        <span className="no-items">No uploaded tables</span>
+                      ) : (
+                        uploadedTables.map((table) => (
+                          <button
+                            key={table.name}
+                            className={`selector-btn table-btn uploaded ${selectedTable === table.name ? "active" : ""}`}
+                            onClick={() => setSelectedTable(table.name)}
+                          >
+                            📤 {table.name} ({table.rows} rows)
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -219,17 +230,14 @@ function ViewDataTable({ refreshTrigger, selectedDatabase: initialDatabase }) {
               </div>
             ) : tableData.rows && tableData.rows.length > 0 ? (
               <div className="data-table-wrapper">
-                <div className="table-info">
-                  <span className="row-count">📊 {tableData.rows.length} row{tableData.rows.length !== 1 ? 's' : ''}</span>
-                  <span className="col-count">📋 {tableData.columns.length} column{tableData.columns.length !== 1 ? 's' : ''}</span>
-                  <button 
-                    className="expand-btn"
-                    onClick={() => setIsFullscreenOpen(true)}
-                    title="Expand to fullscreen"
-                  >
-                    ⛶ Expand
-                  </button>
-                </div>
+                <button
+                  className="expand-btn expand-btn--floating"
+                  onClick={() => setIsFullscreenOpen(true)}
+                  title="Expand to fullscreen"
+                  aria-label="Expand table"
+                >
+                  ⛶
+                </button>
                 <div className="table-scroll-container">
                   <table className="data-table">
                     <thead>
@@ -251,6 +259,10 @@ function ViewDataTable({ refreshTrigger, selectedDatabase: initialDatabase }) {
                       ))}
                     </tbody>
                   </table>
+                </div>
+                <div className="table-meta-footer">
+                  <span className="row-count">📊 {tableData.rows.length} row{tableData.rows.length !== 1 ? 's' : ''}</span>
+                  <span className="col-count">📋 {tableData.columns.length} column{tableData.columns.length !== 1 ? 's' : ''}</span>
                 </div>
               </div>
             ) : (

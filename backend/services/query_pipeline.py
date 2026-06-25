@@ -14,14 +14,9 @@ This module holds the business logic so the ``/query`` route stays thin.
 """
 
 from typing import Any
-import sys
-from pathlib import Path
 import time
 import asyncio
 import logging
-
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from fastapi import HTTPException
 
@@ -32,6 +27,7 @@ from backend.core.query_executor import get_query_executor
 from backend.core.file_handler import FileUploadHandler
 from backend.utils.state import get_metadata, get_join_graphs
 from backend.utils.join_graph_builder import extract_join_path_from_sql
+from backend.utils.logger import log_query
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +90,13 @@ async def run_query_pipeline(request: QueryRequest) -> QueryResponse:
         database = request.database
         query_text = request.query
 
+        # Uploaded tables take part in the SAME semantic search as schema tables.
+        # Reconcile them into the vector index first (embed new uploads, drop
+        # deleted ones) so that relevance — not special-casing — decides which
+        # tables reach the LLM.
+        uploaded_tables = FileUploadHandler.get_uploaded_tables(database)
+        await embedder.reconcile_uploaded_tables(database, uploaded_tables)
+
         # Step 1 & 2: Search for relevant tables using async embedding (much faster!)
         logger.info("📍 Step 1: Searching for relevant tables using embeddings...")
         search_start = time.time()
@@ -124,35 +127,55 @@ async def run_query_pipeline(request: QueryRequest) -> QueryResponse:
                 all_database_tables = db_meta.get("tables", [])
                 break
 
-        # FILTER: Only include metadata for relevant tables retrieved in Step 1
+        # FILTER: Only include metadata for relevant tables retrieved in Step 1.
+        # Each relevant table is either a schema table or an uploaded table — both
+        # came from the same semantic search above. Build the list in ranked
+        # (most-relevant-first) order so the prompt leads with the best match.
+        uploaded_by_name = {t["name"]: t for t in uploaded_tables}
+        schema_by_name = {t["name"]: t for t in all_database_tables}
+
         database_metadata = []
-        for table_meta in all_database_tables:
-            if table_meta["name"] in table_names:  # Only include tables from Step 1
-                database_metadata.append(table_meta)
+        for name in table_names:
+            if name in uploaded_by_name:
+                ut = uploaded_by_name[name]
+                database_metadata.append({
+                    "name": ut["name"],
+                    "columns": ut.get("columns", []),
+                    "rows": ut.get("rows", 0),
+                    "uploaded": True,
+                    "filename": ut.get("filename", ""),
+                })
+            elif name in schema_by_name:
+                database_metadata.append(schema_by_name[name])
 
-        # Include ALL uploaded tables (always available for user queries)
-        uploaded_tables = FileUploadHandler.get_uploaded_tables(database)
-        for uploaded_table in uploaded_tables:
-            # Convert uploaded table format to metadata format (matching database tables)
-            table_meta = {
-                "name": uploaded_table["name"],
-                "columns": uploaded_table.get("columns", []),
-                "rows": uploaded_table.get("rows", 0),
-                "uploaded": True,
-                "filename": uploaded_table.get("filename", "")
-            }
-            database_metadata.append(table_meta)
-
-        logger.info(f"✅ Fetched metadata for {len(database_metadata)} tables ({len(uploaded_tables)} uploaded, {len(database_metadata)-len(uploaded_tables)} from relevant search)")
+        uploaded_count = sum(1 for t in database_metadata if t.get("uploaded"))
+        logger.info(f"✅ Fetched metadata for {len(database_metadata)} tables ({uploaded_count} uploaded, {len(database_metadata)-uploaded_count} from schema)")
         if uploaded_tables:
-            logger.info(f"   Uploaded tables included: {[t['name'] for t in uploaded_tables]}")
-        if database_metadata and len(database_metadata) > len(uploaded_tables):
-            logger.info(f"   Relevant tables: {[t['name'] for t in database_metadata if not t.get('uploaded')]}")
+            logger.info(f"   Uploaded tables available: {[t['name'] for t in uploaded_tables]}")
+        logger.info(f"   Tables selected by relevance: {table_names}")
 
         # Log full metadata for debugging
         logger.info(f"📊 DEBUG: database_metadata contains {len(database_metadata)} tables:")
         for table in database_metadata:
             logger.info(f"   - {table['name']} (uploaded={table.get('uploaded', False)})")
+
+        # Step 2.5: Fetch a few sample rows per table so the LLM sees real data
+        # (helps it pick the right column when names are similar/ambiguous)
+        logger.info("📍 Step 2.5: Fetching sample rows for tables...")
+        sample_start = time.time()
+
+        async def _attach_sample_rows(table_meta: dict) -> None:
+            rows = await asyncio.to_thread(
+                query_executor.get_sample_rows, table_meta["name"], database, 3
+            )
+            table_meta["sample_rows"] = rows
+
+        await asyncio.gather(*[_attach_sample_rows(tm) for tm in database_metadata])
+        total_samples = sum(len(tm.get("sample_rows", [])) for tm in database_metadata)
+        logger.info(
+            f"✅ Fetched sample rows for {len(database_metadata)} tables "
+            f"({total_samples} rows total) in {time.time() - sample_start:.2f}s"
+        )
 
         # Step 3: Get join graph for the database
         logger.info("📍 Step 3: Fetching join graph...")
@@ -234,13 +257,16 @@ async def run_query_pipeline(request: QueryRequest) -> QueryResponse:
             tokens_used = sql_tokens
             logger.info(f"Using execution error as summary: {execution_error[:80]}...")
         else:
-            summary_prompt = f"""Based on the following SQL query and results, provide a summary of what the data shows.You can also include additional insights about the data, such as trends, outliers, or interesting patterns. Be concise but informative.
+            total_rows = len(query_results)
+            all_rows = query_results if query_results else 'No results'
+            summary_prompt = f"""Based on the following SQL query and its FULL result set, write a summary  of what the data shows. You may note key trends, outliers, or interesting patterns. Be concise.
 
 Query: {request.query}
 SQL: {generated_sql}
-Results: {query_results[:3] if query_results else 'No results'}
+Total rows returned: {total_rows}
+Full results ({total_rows} row(s)): {all_rows}
 
-Provide only the summary, no additional text."""
+Base any counts on the actual data above. Provide only the short summary, no additional text."""
 
             logger.info("📤 SUMMARY PROMPT:")
             logger.info("=" * 80)
@@ -340,6 +366,15 @@ Provide only the summary, no additional text."""
         logger.info(f"Tokens Used: {tokens_used}")
         logger.info("="*80 + "\n")
 
+        # Save query to log file
+        log_query(
+            query_text=request.query,
+            database=request.database,
+            tables=actual_tables_sent,
+            sql=generated_sql,
+            status="success" if not execution_error else "error"
+        )
+
         return response
 
     except Exception as e:
@@ -348,6 +383,15 @@ Provide only the summary, no additional text."""
         logger.error("="*80)
         logger.error(f"Error: {str(e)}", exc_info=True)
         logger.error("="*80 + "\n")
+
+        # Log the failed query
+        log_query(
+            query_text=request.query,
+            database=request.database,
+            tables=[],
+            sql="",
+            status="failed"
+        )
 
         raise HTTPException(
             status_code=500,
