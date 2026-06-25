@@ -3,12 +3,8 @@ Query Executor - Executes generated SQL against the database
 """
 
 from typing import List, Dict, Any
-import sys
-from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
+from sqlalchemy import text
 from backend.db.db import get_engine
 
 
@@ -69,6 +65,38 @@ class QueryExecutor:
             error_msg = str(e)
             print(f"❌ Error executing query: {error_msg}")
             return [], error_msg
+    
+    def get_sample_rows(
+        self,
+        table_name: str,
+        database_name: str,
+        limit: int = 3
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch a few sample rows from a table to give the LLM real data context.
+
+        Args:
+            table_name: Table to sample from
+            database_name: Database the table lives in
+            limit: Maximum number of sample rows to return
+
+        Returns:
+            List of row dicts (empty list on any error - sampling is best-effort)
+        """
+        try:
+            engine = get_engine(database_name)
+            # Double-quote the identifier so special/uploaded table names are safe
+            safe_table = '"' + table_name.replace('"', '""') + '"'
+            with engine.connect() as connection:
+                result = connection.execute(
+                    text(f"SELECT * FROM {safe_table} LIMIT {int(limit)}")
+                )
+                columns = [col for col in result.keys()]
+                rows = result.fetchall()
+                return [dict(zip(columns, row)) for row in rows]
+        except Exception as e:
+            print(f"⚠️ Could not fetch sample rows for {table_name}: {e}")
+            return []
     
     def validate_query(self, sql_query: str) -> tuple[bool, str]:
         """

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "./components/Sidebar";
-import DatabaseSchemaView from "./components/DatabaseSchemaView";
-import ViewDataTable from "./components/ViewDataTable";
-import QueryResultsPanel from "./components/QueryResultsPanel";
-import QueryModal from "./components/QueryModal";
-import FileUploadModal from "./components/FileUploadModal";
+import Sidebar from "./components/layout/Sidebar";
+import DatabaseSchemaView from "./components/schema/DatabaseSchemaView";
+import ViewDataTable from "./components/data/ViewDataTable";
+import QueryResultsPanel from "./components/query/QueryResultsPanel";
+import QueryModal from "./components/query/QueryModal";
+import FileUploadModal from "./components/upload/FileUploadModal";
 import "./App.css";
 
 function App() {
@@ -23,6 +23,26 @@ function App() {
   useEffect(() => {
     localStorage.setItem("selectedDatabase", selectedDatabase);
   }, [selectedDatabase]);
+
+  // Validate the selected database against the live list. A previously selected
+  // database may no longer exist (e.g. a temporary upload DB that was dropped on
+  // restart), so fall back to a valid one instead of keeping a dead selection.
+  useEffect(() => {
+    const validateSelectedDatabase = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/databases");
+        if (!response.ok) return;
+        const dbs = await response.json();
+        if (Array.isArray(dbs) && dbs.length > 0 && !dbs.includes(selectedDatabase)) {
+          const fallback = dbs.includes("fastapi_db") ? "fastapi_db" : dbs[0];
+          setSelectedDatabase(fallback);
+        }
+      } catch (error) {
+        console.error("Error validating selected database:", error);
+      }
+    };
+    validateSelectedDatabase();
+  }, [uploadRefreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNewChat = async (query) => {
     try {
@@ -98,7 +118,12 @@ function App() {
   };
 
   const handleUploadSuccess = (result) => {
-    // Trigger refresh in schema and data views
+    // If the file was uploaded into a different database (e.g. a newly created
+    // one), switch the app to it so the user sees their data immediately.
+    if (result && result.database && result.database !== selectedDatabase) {
+      setSelectedDatabase(result.database);
+    }
+    // Trigger refresh in schema, data views and the database dropdown
     setUploadRefreshTrigger(prev => prev + 1);
   };
 
@@ -134,6 +159,7 @@ function App() {
                 onOpenNewQuery={handleOpenModal}
                 selectedDatabase={selectedDatabase}
                 onDatabaseChange={setSelectedDatabase}
+                refreshTrigger={uploadRefreshTrigger}
               />
             </div>
           </div>

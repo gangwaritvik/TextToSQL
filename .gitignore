@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 __pycache__/
 *.pyc
 *.pyo
@@ -17,3 +19,8 @@ build/
 *.log
 logs/
 embeddings/
+
+# Runtime-generated data (FAISS indices, query logs, created-DB registry)
+/data/
+created_databases.json
+

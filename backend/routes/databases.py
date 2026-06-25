@@ -6,13 +6,11 @@ Combines all database-related endpoints
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import inspect, text
 from typing import List, Dict, Any
-import sys
-from pathlib import Path
-
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+import re
+from pydantic import BaseModel
 
 from backend.db import get_engine
+from backend.utils.db_registry import register_created_database
 
 # Create main router with /databases prefix
 router = APIRouter(
@@ -20,6 +18,78 @@ router = APIRouter(
     tags=["databases"],
     responses={404: {"description": "Not found"}},
 )
+
+
+class CreateDatabaseRequest(BaseModel):
+    """Request body for creating a new database."""
+    name: str
+
+
+def _sanitize_db_name(raw_name: str) -> str:
+    """Turn a user-supplied name into a safe lowercase PostgreSQL identifier.
+
+    Any character that is not a letter, digit or underscore is replaced with an
+    underscore so the name can be used unquoted. Names that would start with a
+    digit are prefixed with ``db_``. Raises ValueError if nothing usable remains.
+    """
+    name = re.sub(r'[^0-9a-zA-Z]+', '_', (raw_name or "").strip().lower()).strip('_')
+    if not name:
+        raise ValueError("Database name must contain at least one letter or digit.")
+    if name[0].isdigit():
+        name = f"db_{name}"
+    # PostgreSQL identifiers are limited to 63 bytes
+    return name[:63]
+
+
+@router.post("")
+def create_database(request: CreateDatabaseRequest) -> Dict[str, Any]:
+    """Create a new PostgreSQL database.
+
+    The supplied name is sanitized into a safe lowercase identifier. Returns the
+    final database name that was created.
+    """
+    try:
+        db_name = _sanitize_db_name(request.name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        engine = get_engine()  # connect to the default database
+
+        # Reject if a database with this name already exists
+        with engine.connect() as connection:
+            exists = connection.execute(
+                text("SELECT 1 FROM pg_database WHERE datname = :name"),
+                {"name": db_name},
+            ).scalar()
+
+        if exists:
+            engine.dispose()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Database '{db_name}' already exists.",
+            )
+
+        # CREATE DATABASE cannot run inside a transaction block, so use AUTOCOMMIT.
+        # db_name is sanitized to [a-z0-9_] only, so quoting it is safe.
+        with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            connection.execute(text(f'CREATE DATABASE "{db_name}"'))
+
+        engine.dispose()
+
+        # Record it as a temporary database so it is cleaned up on next startup
+        register_created_database(db_name)
+
+        return {"success": True, "database": db_name, "message": f"Database '{db_name}' created."}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create database: {str(e)}",
+        )
+
 
 
 @router.get("")

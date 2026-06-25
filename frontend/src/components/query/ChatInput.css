@@ -1,10 +1,10 @@
 .chat-input-wrapper {
   padding: 20px 48px 24px 48px;
-  background: linear-gradient(180deg, rgba(10, 10, 10, 0.2) 0%, rgba(10, 10, 10, 0.6) 100%);
-  border-top: 1px solid rgba(94, 234, 212, 0.25);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(244, 247, 252, 0.95) 100%);
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  animation: slideUp 0.6s ease-out;
+  animation: slideUp 0.28s ease-out;
   flex-shrink: 0;
 }
 
@@ -18,12 +18,12 @@
   border-radius: 16px;
   padding: 6px;
   transition: all var(--transition-base);
-  animation: fadeInUp 0.6s ease-out;
+  animation: fadeInUp 0.28s ease-out;
 }
 
 .chat-input-form:focus-within {
-  background: rgba(94, 234, 212, 0.05);
-  border-color: rgba(94, 234, 212, 0.15);
+  background: rgba(47, 111, 237, 0.04);
+  border-color: rgba(47, 111, 237, 0.2);
 }
 
 .input-container {
@@ -34,7 +34,7 @@
   border: none;
   border-radius: 12px;
   transition: all var(--transition-base);
-  box-shadow: 0 0 20px rgba(94, 234, 212, 0.15);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
 }
 
 .input-container:focus-within {
@@ -51,7 +51,7 @@
   font-size: 1em;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   font-weight: 400;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.1px;
   resize: none;
   transition: all var(--transition-base);
   outline: none;
@@ -60,7 +60,7 @@
 }
 
 .chat-textarea::placeholder {
-  color: rgba(94, 234, 212, 0.4);
+  color: rgba(81, 99, 126, 0.65);
   font-size: 0.9em;
 }
 
@@ -74,14 +74,14 @@
 }
 
 .send-btn {
-  background: transparent;
-  color: var(--color-text-primary);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+  color: #ffffff;
   border: none;
   border-radius: 12px;
   font-weight: var(--font-weight-bold);
   cursor: pointer;
   transition: all cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
-  box-shadow: none;
+  box-shadow: 0 4px 12px rgba(47, 111, 237, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,18 +92,19 @@
   width: 36px;
   height: 36px;
   padding: 0;
-  animation: fadeInUp 0.6s ease-out 0.1s backwards;
+  animation: fadeInUp 0.28s ease-out 0.04s backwards;
   margin-right: 4px;
 }
 
 .send-btn:hover:not(:disabled) {
-  transform: scale(1.1);
-  background: transparent;
-  color: var(--color-text-primary);
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #3b78f0 0%, #1d4fd0 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(47, 111, 237, 0.4);
 }
 
 .send-btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(1);
 }
 
 .send-btn:disabled {
@@ -114,7 +115,7 @@
 
 .spinner {
   display: inline-block;
-  animation: spin 1s linear infinite;
+  animation: spin 1.2s linear infinite;
   font-size: 1.1em;
 }
 

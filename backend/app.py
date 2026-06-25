@@ -7,8 +7,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from contextlib import asynccontextmanager
-import sys
-from pathlib import Path
 import shutil
 import logging
 
@@ -18,20 +16,16 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from backend.db.db import get_engine
-from backend.utils.join_graph import build_all_join_graphs
-from backend.utils.metadata import build_all_metadata
+from backend.utils.join_graph_builder import build_all_join_graphs
+from backend.utils.metadata_builder import build_all_metadata
 from backend.utils.state import set_join_graphs, set_metadata
+from backend.utils.db_registry import drop_created_databases
 from backend.core.file_handler import FileUploadHandler
 from backend.routes import query_router, databases_router, join_graphs_router, metadata_router, upload_router
 from backend.core.embedder import initialize_embeddings
 from backend.utils.logger import cleanup_logs
-
-# Embeddings directory path
-EMBEDDINGS_DIR = Path(__file__).parent / ".." / "embeddings"
+from backend.paths import EMBEDDINGS_DIR
 
 
 engine = get_engine()  # Initialize database connection
@@ -60,7 +54,18 @@ async def lifespan(app: FastAPI):
             databases = [row[0] for row in result.fetchall()]
         
         print(f"✅ Found {len(databases)} databases: {databases}")
-        
+
+        # Drop databases created via the upload feature in a previous session.
+        # They are intentionally temporary, so we start each run from a clean slate.
+        # Only registry-tracked databases are dropped; pre-existing ones are untouched.
+        print("\n📍 Step 1b: Dropping temporary databases from previous sessions...")
+        dropped_dbs = drop_created_databases()
+        if dropped_dbs:
+            databases = [d for d in databases if d not in dropped_dbs]
+            print(f"🗑️  Dropped temporary databases: {dropped_dbs}")
+        else:
+            print("✅ No temporary databases to drop")
+
         # Clean up any leftover uploaded files from previous sessions
         print("\n📍 Step 2: Cleaning up uploaded files from previous sessions...")
         cleanup_result = FileUploadHandler.cleanup_uploaded_tables(databases)

@@ -6,11 +6,6 @@ GET /join-graphs/{database_name} - Get join graph for specific database
 
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
-import sys
-from pathlib import Path
-
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from backend.utils.state import get_join_graphs
 

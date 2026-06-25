@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "./ChatMessage.css";
-import FullScreenTableModal from "./FullScreenTableModal";
+import FullScreenTableModal from "../common/FullScreenTableModal";
 
 function ChatMessage({ chat, isInPanel }) {
   const [expanded, setExpanded] = useState(true);
   const [copied, setCopied] = useState(false);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
+  const [isResultsMinimized, setIsResultsMinimized] = useState(false);
 
   // Handle ESC key to close fullscreen modal
   useEffect(() => {
@@ -65,59 +66,82 @@ function ChatMessage({ chat, isInPanel }) {
 
       {expanded && (
         <div className="chat-content">
-          {/* Retrieved Tables */}
-          <div className="content-section">
-            <h4 className="section-title">🗂️ Retrieved Tables</h4>
-            <div className="chips-container">
-              {chat.tables.map((table, idx) => (
-                <span key={idx} className="chip">
-                  {table}
-                </span>
-              ))}
-            </div>
-            <div className="join-path-container">
-              <span className="label">Join Path:</span>
-              <div className="join-path-animated">
-                {chat.joinPath ? (
-                  chat.joinPath.split(' → ').map((part, idx, arr) => (
-                    <React.Fragment key={idx}>
-                      <span className={`join-part join-part-${idx % 3}`}>{part}</span>
-                      {idx < arr.length - 1 && <span className="join-arrow">→</span>}
-                    </React.Fragment>
-                  ))
-                ) : (
-                  <span className="no-joins">No joins needed</span>
-                )}
+          <div className="tables-analytics-row">
+            {/* Retrieved Tables */}
+            <div className="content-section">
+              <h4 className="section-title">🗂️ Retrieved Tables</h4>
+              <div className="chips-container">
+                {chat.tables.map((table, idx) => (
+                  <span key={idx} className="chip">
+                    {table}
+                  </span>
+                ))}
               </div>
+            </div>
+
+            {/* Analytics */}
+            <div className="content-section">
+              <h4 className="section-title">📊 Analytics</h4>
+              <div className="analytics-grid">
+                <div className="stat-item">
+                  <div className="stat-label">Execution Time</div>
+                  <div className="stat-value">{chat.executionTime}</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-label">Tokens Used</div>
+                  <div className="stat-value">{chat.tokensUsed}</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-label">Complexity</div>
+                  <div className="stat-value">{chat.complexity}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Join Path - Full Width */}
+          <div className="content-section join-path-section">
+            <span className="label">Join Path:</span>
+            <div className="join-path-animated">
+              {chat.joinPath ? (
+                chat.joinPath.split(' → ').map((part, idx, arr) => (
+                  <React.Fragment key={idx}>
+                    <span className={`join-part join-part-${idx % 3}`}>{part}</span>
+                    {idx < arr.length - 1 && <span className="join-arrow">→</span>}
+                  </React.Fragment>
+                ))
+              ) : (
+                <span className="no-joins">No joins needed</span>
+              )}
             </div>
           </div>
 
           {/* Generated SQL */}
           <div className="content-section">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+            <div className="sql-header-row">
               <h4 className="section-title" style={{ margin: 0 }}>⚙️ Generated SQL</h4>
-              {chat.executionError && (
-                <button 
-                  className="danger-button"
-                  disabled
-                  title="This operation has been blocked for safety"
+              <div className="sql-header-actions">
+                {chat.executionError && (
+                  <button
+                    className="danger-button"
+                    disabled
+                    title="This operation has been blocked for safety"
+                  >
+                    🚨 DANGEROUS - BLOCKED
+                  </button>
+                )}
+                <button
+                  className="sql-copy-btn-extreme-right"
+                  onClick={handleCopySQL}
+                  title="Copy SQL to clipboard"
                 >
-                  🚨 DANGEROUS - BLOCKED
+                  {copied ? '✅ Copied!' : '📋 Copy'}
                 </button>
-              )}
+              </div>
             </div>
             {chat.sql ? (
               <div className="sql-box">
                 <pre className="sql-code">{chat.sql}</pre>
-                <div className="sql-actions">
-                  <button 
-                    className="sql-btn"
-                    onClick={handleCopySQL}
-                    title="Copy SQL to clipboard"
-                  >
-                    {copied ? '✅ Copied!' : '📋 Copy'}
-                  </button>
-                </div>
               </div>
             ) : (
               <div className="sql-box" style={{ padding: '15px', color: '#999', textAlign: 'center' }}>
@@ -126,10 +150,28 @@ function ChatMessage({ chat, isInPanel }) {
             )}
           </div>
 
+          {/* AI Summary */}
+          <div className="content-section">
+            <h4 className="section-title">🤖 AI Summary</h4>
+            <div className="summary-highlight">
+              <p className="summary-text">{chat.summary}</p>
+            </div>
+          </div>
+
           {/* Query Results */}
           <div className="content-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', gap: '8px', flexWrap: 'wrap' }}>
-              <h4 className="section-title" style={{ margin: 0 }}>📈 Query Results</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', gap: '8px', flexWrap: 'nowrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h4 className="section-title" style={{ margin: 0 }}>📈 Query Results</h4>
+                <button
+                  className="results-toggle-arrow"
+                  onClick={() => setIsResultsMinimized(!isResultsMinimized)}
+                  title={isResultsMinimized ? "Expand results" : "Minimize results"}
+                  aria-label={isResultsMinimized ? "Expand query results" : "Minimize query results"}
+                >
+                  {isResultsMinimized ? '▸' : '▾'}
+                </button>
+              </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button 
                   className="sql-btn" 
@@ -151,7 +193,11 @@ function ChatMessage({ chat, isInPanel }) {
                 </button>
               </div>
             </div>
-            {chat.results && chat.results.length > 0 ? (
+            {isResultsMinimized ? (
+              <p style={{ color: '#6b7280', textAlign: 'center', padding: '10px 14px' }}>
+                Query results minimized
+              </p>
+            ) : chat.results && chat.results.length > 0 ? (
               <div className="results-wrapper">
                 <table className="results-table">
                   <thead>
@@ -177,31 +223,6 @@ function ChatMessage({ chat, isInPanel }) {
                 No results to display
               </p>
             )}
-          </div>
-
-          {/* AI Summary */}
-          <div className="content-section">
-            <h4 className="section-title">🤖 AI Summary</h4>
-            <p className="summary-text">{chat.summary}</p>
-          </div>
-
-          {/* Analytics */}
-          <div className="content-section">
-            <h4 className="section-title">📊 Analytics</h4>
-            <div className="analytics-grid">
-              <div className="stat-item">
-                <div className="stat-label">Execution Time</div>
-                <div className="stat-value">{chat.executionTime}</div>
-              </div>
-              <div className="stat-item">
-                <div className="stat-label">Tokens Used</div>
-                <div className="stat-value">{chat.tokensUsed}</div>
-              </div>
-              <div className="stat-item">
-                <div className="stat-label">Complexity</div>
-                <div className="stat-value">{chat.complexity}</div>
-              </div>
-            </div>
           </div>
         </div>
       )}

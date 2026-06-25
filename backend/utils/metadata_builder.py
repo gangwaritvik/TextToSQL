@@ -5,11 +5,7 @@ Includes database structure, tables, columns, and relationships
 
 from sqlalchemy import inspect
 from typing import Dict, List, Any
-import sys
-from pathlib import Path
 
-# Add parent directory to path to import db module
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from backend.db.db import get_engine
 
 

@@ -3,14 +3,12 @@ File Upload Handler - Parse CSV/Excel and create temporary tables
 """
 import pandas as pd
 import io
-import sys
+import re
 import logging
 from pathlib import Path
 from typing import Dict, Any, Tuple
 import uuid
 from sqlalchemy import text
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.db.db import get_engine
 
@@ -24,12 +22,38 @@ class FileUploadHandler:
     uploaded_tables = {}  # {table_name: {filename, rows, columns, created_at}}
     
     @staticmethod
+    def _sanitize_columns(columns) -> list:
+        """Turn raw column headers into safe lowercase SQL identifiers.
+
+        Any character that is not a letter, digit or underscore is replaced with
+        an underscore. This handles pandas duplicate-header suffixes (e.g. two
+        columns named "name" become "name" and "name.1" -> "name_1"), so the
+        resulting columns can be referenced unquoted in PostgreSQL. Names that
+        collide after sanitizing are de-duplicated so to_sql cannot fail.
+        """
+        sanitized = []
+        seen: Dict[str, int] = {}
+        for col in columns:
+            clean = re.sub(r'[^0-9a-zA-Z]+', '_', str(col).strip().lower()).strip('_')
+            if not clean:
+                clean = "column"
+            if clean[0].isdigit():
+                clean = f"col_{clean}"
+            if clean in seen:
+                seen[clean] += 1
+                clean = f"{clean}_{seen[clean]}"
+            else:
+                seen[clean] = 0
+            sanitized.append(clean)
+        return sanitized
+    
+    @staticmethod
     def parse_csv_file(file_content: bytes, filename: str) -> Tuple[pd.DataFrame, str]:
         """Parse CSV file and return DataFrame with table name."""
         try:
             df = pd.read_csv(io.BytesIO(file_content))
-            # Use underscores instead of hyphens to avoid SQL quoting issues
-            file_stem = Path(filename).stem.replace('-', '_').replace(' ', '_')
+            # Lowercase + underscores so unquoted identifiers match PostgreSQL case-folding
+            file_stem = Path(filename).stem.lower().replace('-', '_').replace(' ', '_')
             table_name = f"uploaded__{file_stem}_{str(uuid.uuid4())[:8]}"
             return df, table_name
         except Exception as e:
@@ -42,8 +66,8 @@ class FileUploadHandler:
         try:
             # Try to read first sheet
             df = pd.read_excel(io.BytesIO(file_content), sheet_name=0)
-            # Use underscores instead of hyphens to avoid SQL quoting issues
-            file_stem = Path(filename).stem.replace('-', '_').replace(' ', '_')
+            # Lowercase + underscores so unquoted identifiers match PostgreSQL case-folding
+            file_stem = Path(filename).stem.lower().replace('-', '_').replace(' ', '_')
             table_name = f"uploaded__{file_stem}_{str(uuid.uuid4())[:8]}"
             return df, table_name
         except Exception as e:
@@ -56,8 +80,9 @@ class FileUploadHandler:
         try:
             engine = get_engine(database_name)
             
-            # Clean column names (remove spaces, special chars)
-            df.columns = [col.strip().lower().replace(' ', '_').replace('-', '_') for col in df.columns]
+            # Clean column names into safe lowercase SQL identifiers
+            # (handles duplicate headers like 'name'/'name.1' -> 'name'/'name_1')
+            df.columns = FileUploadHandler._sanitize_columns(df.columns)
             
             # Create table
             df.to_sql(table_name, engine, if_exists='replace', index=False)

@@ -3,12 +3,7 @@ SQL Generator - Uses Azure OpenAI to generate SQL queries from natural language
 """
 
 from typing import List, Dict, Any
-import sys
 import logging
-from pathlib import Path
-
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.utils.prompt_builder import build_sql_generation_prompt
 from backend.config.llm import model as llm_model

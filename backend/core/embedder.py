@@ -8,11 +8,8 @@ import json
 import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from pathlib import Path
-import sys
 
 # Database utilities
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from backend.db.db import get_engine
 from backend.utils.state import get_metadata
 from backend.core.vector_store import get_vector_store
@@ -211,10 +208,81 @@ class DatabaseEmbedder:
         except Exception as e:
             print(f"❌ Error in embed_all_databases: {str(e)}")
             raise
-    
+
+    def _build_uploaded_table_text(self, database_name: str, table: Dict[str, Any]) -> str:
+        """Build schema text for an uploaded table (same shape as get_table_metadata)."""
+        table_name = table["name"]
+        metadata_text = f"Table: {table_name}\n"
+        metadata_text += f"Database: {database_name}\n\n"
+        metadata_text += "Columns:\n"
+        for col in table.get("columns", []):
+            nullable = "nullable" if col.get("nullable") else "NOT NULL"
+            col_type = str(col.get("type", "UNKNOWN"))
+            metadata_text += f"  - {col['name']}: {col_type} ({nullable})\n"
+        return metadata_text
+
+    async def reconcile_uploaded_tables(
+        self, database_name: str, uploaded_tables: List[Dict[str, Any]]
+    ) -> None:
+        """Keep uploaded tables in the vector index in sync with reality.
+
+        Uploaded tables aren't part of the startup embedding pass, so without this
+        they'd never be retrievable by semantic search. This embeds any newly
+        uploaded tables and removes entries for tables that no longer exist, so the
+        same relevance ranking that orders schema tables also orders uploaded ones.
+        The index is only rebuilt when the set of uploaded tables actually changed,
+        so steady-state queries pay no extra cost.
+        """
+        vector_store = self.vector_store
+        existing_entries = vector_store.embeddings_store.get(database_name, [])
+
+        schema_entries = [
+            e for e in existing_entries if not e["table"].startswith("uploaded__")
+        ]
+        indexed_uploaded = {
+            e["table"]: e for e in existing_entries if e["table"].startswith("uploaded__")
+        }
+
+        # Build the desired schema text for each current uploaded table up front so
+        # we can detect not just added/removed tables but also schema changes
+        # (e.g. a column rename) on a table whose name stayed the same.
+        desired_text = {
+            t["name"]: self._build_uploaded_table_text(database_name, t)
+            for t in uploaded_tables
+        }
+        current_names = set(desired_text.keys())
+
+        # Nothing changed since last time: same set of tables AND same schema text.
+        if set(indexed_uploaded.keys()) == current_names and all(
+            indexed_uploaded[name].get("metadata") == desired_text[name]
+            for name in current_names
+        ):
+            return
+
+        uploaded_entries = []
+        for table in uploaded_tables:
+            name = table["name"]
+            metadata_text = desired_text[name]
+            existing = indexed_uploaded.get(name)
+            # Reuse the embedding only when the schema text is byte-for-byte the same.
+            if existing is not None and existing.get("metadata") == metadata_text:
+                uploaded_entries.append(existing)
+                continue
+            embedding = await self.embed_text(metadata_text)
+            uploaded_entries.append({
+                "database": database_name,
+                "table": name,
+                "embedding": embedding,
+                "metadata": metadata_text,
+                "timestamp": datetime.now().isoformat(),
+            })
+
+        vector_store.set_database_index(database_name, schema_entries + uploaded_entries)
+        print(f"🔄 Reconciled uploaded tables for {database_name}: {sorted(current_names)}")
+
     async def search_similar_tables(self, database_name: str, query_text: str, k: int = 5, similarity_threshold: float = 2.5) -> List[Dict[str, Any]]:
         """Search for similar tables using query embeddings
-        
+
         Args:
             database_name: Database to search
             query_text: Natural language query

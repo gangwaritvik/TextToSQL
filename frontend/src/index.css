@@ -1,34 +1,37 @@
-/* ===== DESIGN SYSTEM: DARK MINIMAL GLASSMORPHISM ===== */
+/* ===== DESIGN SYSTEM: ENTERPRISE LIGHT ===== */
 
 :root {
-  /* COLOR PALETTE - DARK MINIMAL */
-  --color-primary: #e5e7eb;          /* Light gray - Main accent */
-  --color-primary-dark: #d1d5db;     /* Darker gray */
-  --color-secondary: #9ca3af;        /* Medium gray - Secondary accent */
-  --color-secondary-light: #f3f4f6;  /* Very light gray */
+  /* COLOR PALETTE - NAVY INTELLIGENCE */
+  --color-primary: #1e3a5f;          /* Navy */
+  --color-primary-dark: #14253d;     /* Deep navy */
+  --color-accent: #2f6fed;           /* Bright blue accent */
+  --color-accent-dark: #1d4fd0;      /* Deeper blue */
+  --color-accent-soft: #dce8fb;      /* Light blue (badges/chips) */
+  --color-secondary: #51637e;        /* Blue-slate */
+  --color-secondary-light: #e4eaf3;  /* Light blue-gray */
   
   /* BACKGROUNDS */
-  --color-bg-base: #0f0f0f;          /* Pure dark base */
-  --color-bg-secondary: #1a1a1a;     /* Slightly lighter dark */
-  --color-surface-glass: rgba(20, 20, 20, 0.3);  /* Glass surface - 30% opacity */
-  --color-surface-glass-hover: rgba(30, 30, 30, 0.4);  /* Glass surface hover */
-  --color-surface-elevated: rgba(25, 25, 25, 0.5);  /* Elevated surface */
+  --color-bg-base: #eef2f8;          /* Page background (near-white blue) */
+  --color-bg-secondary: #e3e9f2;     /* Secondary background */
+  --color-surface-glass: rgba(255, 255, 255, 0.86);
+  --color-surface-glass-hover: rgba(255, 255, 255, 0.95);
+  --color-surface-elevated: rgba(255, 255, 255, 0.95);
   
   /* TYPOGRAPHY */
-  --color-text-primary: #f5f5f5;     /* Primary text */
-  --color-text-secondary: #d4d4d4;   /* Secondary text */
-  --color-text-tertiary: #a0a0a0;    /* Tertiary text */
-  --color-text-muted: #808080;       /* Muted text */
+  --color-text-primary: #17233a;     /* Navy ink */
+  --color-text-secondary: #2c3a52;
+  --color-text-tertiary: #51637e;
+  --color-text-muted: #94a3b8;
   
-  /* STATUS COLORS - MUTED */
-  --color-success: #6b7280;
-  --color-warning: #9ca3af;
-  --color-danger: #9ca3af;
+  /* STATUS COLORS */
+  --color-success: #16a34a;          /* Green */
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
   
   /* TYPOGRAPHY */
-  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  --font-family-base: 'Segoe UI Variable', 'Segoe UI', Calibri, 'Helvetica Neue', Arial, sans-serif;
   --font-family-mono: 'Monaco', 'Courier New', monospace;
-  --font-size-base: 16px;
+  --font-size-base: 15px;
   --font-size-sm: 14px;
   --font-size-xs: 12px;
   --font-size-lg: 18px;
@@ -56,10 +59,10 @@
   --radius-full: 9999px;
   
   /* SHADOWS - Minimal */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.12);
+  --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.14);
+  --shadow-xl: 0 20px 50px rgba(15, 23, 42, 0.18);
   
   /* BLUR & BACKDROP */
   --blur-sm: 4px;
@@ -68,9 +71,9 @@
   --blur-xl: 16px;
   
   /* TRANSITIONS */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ===== GLOBAL STYLES ===== */
@@ -86,13 +89,13 @@ html, body, #root {
 }
 
 body {
-  background: linear-gradient(135deg, var(--color-bg-base) 0%, #000000 50%, var(--color-bg-secondary) 100%);
+  background: linear-gradient(135deg, #eef2f8 0%, #e8eef6 45%, #e3e9f2 100%);
   background-attachment: fixed;
   color: var(--color-text-primary);
   font-family: var(--font-family-base);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-regular);
-  line-height: 1.6;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
@@ -105,27 +108,27 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(20, 20, 30, 0.2);
+  background: rgba(148, 163, 184, 0.18);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 204, 193, 0.4);
+  background: rgba(47, 111, 237, 0.35);
   border-radius: 10px;
-  border: 2px solid rgba(20, 20, 30, 0.2);
+  border: 2px solid rgba(148, 163, 184, 0.15);
   transition: background 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 204, 193, 0.7);
-  box-shadow: 0 0 8px rgba(99, 204, 193, 0.5);
+  background: rgba(29, 79, 208, 0.55);
+  box-shadow: 0 0 8px rgba(29, 79, 208, 0.2);
 }
 
 /* ===== ANIMATIONS ===== */
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -136,7 +139,7 @@ body {
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(15px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -158,16 +161,25 @@ body {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
 @keyframes glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(150, 150, 150, 0.2);
+    box-shadow: 0 0 20px rgba(47, 111, 237, 0.18);
   }
   50% {
-    box-shadow: 0 0 40px rgba(150, 150, 150, 0.3);
+    box-shadow: 0 0 40px rgba(47, 111, 237, 0.28);
   }
 }
 
@@ -192,7 +204,7 @@ body {
 /* ===== UTILITY CLASSES ===== */
 .glass {
   background: var(--color-surface-glass);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.22);
   backdrop-filter: blur(var(--blur-lg));
   -webkit-backdrop-filter: blur(var(--blur-lg));
   border-radius: var(--radius-lg);
@@ -200,12 +212,12 @@ body {
 
 .glass:hover {
   background: var(--color-surface-glass-hover);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(148, 163, 184, 0.35);
 }
 
 .glass-elevated {
   background: var(--color-surface-elevated);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.28);
   backdrop-filter: blur(var(--blur-lg));
   -webkit-backdrop-filter: blur(var(--blur-lg));
   border-radius: var(--radius-lg);
